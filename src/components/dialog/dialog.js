@@ -329,7 +329,7 @@ function MdDialogProvider($$interimElementProvider) {
       configureAria(element.find('md-dialog'));
 
       if (options.hasBackdrop) {
-        options.backdrop = angular.element('<md-backdrop class="md-dialog-backdrop md-opaque">');
+        options.backdrop = angular.element('<md-backdrop class="md-dialog-backdrop md-opaque" style="z-index: ' + options.zIndex + '">');
         $mdTheming.inherit(options.backdrop, options.parent);
         $animate.enter(options.backdrop, options.parent);
       }

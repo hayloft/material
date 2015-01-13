@@ -240,13 +240,10 @@ function InterimElementProvider() {
        *
        */
       function show(options) {
-        if (stack.length) {
-          service.cancel();
-        }
-
+        options.zIndex = 80 + stack.length;
         var interimElement = new InterimElement(options);
 
-        stack.push(interimElement);
+        stack.unshift(interimElement);
         return interimElement.show().then(function() {
           return interimElement.deferred.promise;
         });
@@ -336,6 +333,7 @@ function InterimElementProvider() {
               }
 
               element = compileData.link(options.scope);
+              element.css('z-index', options.zIndex);
               if (options.themable) $mdTheming(element);
               var ret = options.onShow(options.scope, element, options);
               return $q.when(ret)
