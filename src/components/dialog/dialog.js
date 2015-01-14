@@ -348,7 +348,9 @@ function MdDialogProvider($$interimElementProvider) {
         if (options.escapeToClose) {
           options.rootElementKeyupCallback = function(e) {
             if (e.keyCode === $mdConstant.KEY_CODE.ESCAPE) {
-              $timeout($mdDialog.cancel);
+              if (options.stack.indexOf(options.interimElement) == 0) {
+                $timeout($mdDialog.cancel);
+              }
             }
           };
           $rootElement.on('keyup', options.rootElementKeyupCallback);

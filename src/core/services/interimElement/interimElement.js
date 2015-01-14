@@ -317,7 +317,7 @@ function InterimElementProvider() {
           options.template = processTemplate(options.template);
         }
 
-        return self = {
+        self = {
           options: options,
           deferred: $q.defer(),
           show: function() {
@@ -364,6 +364,11 @@ function InterimElementProvider() {
             });
           }
         };
+
+        options.interimElement = self;
+        options.stack = stack;
+
+        return self;
       }
     };
 
