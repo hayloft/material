@@ -25,6 +25,10 @@ angular.module('material.components.radioButton', [
  * container for the 1..n grouped radio buttons; specified using nested
  * `<md-radio-button>` tags.
  *
+ * As per the [material design spec](http://www.google.com/design/spec/style/color.html#color-ui-color-application)
+ * the radio button is in the accent color by default. The primary color palette may be used with
+ * the `md-primary` class.
+ *
  * Note: `<md-radio-group>` and `<md-radio-button>` handle tabindex differently
  * than the native `<input type='radio'>` controls. Whereas the native controls
  * force the user to tab through all the radio buttons, `<md-radio-group>`
@@ -56,7 +60,7 @@ function mdRadioGroupDirective($mdUtil, $mdConstant, $mdTheming) {
     restrict: 'E',
     controller: ['$element', RadioGroupController],
     require: ['mdRadioGroup', '?ngModel'],
-    link: linkRadioGroup
+    link: { pre: linkRadioGroup }
   };
 
   function linkRadioGroup(scope, element, attr, ctrls) {
@@ -133,7 +137,7 @@ function mdRadioGroupDirective($mdUtil, $mdConstant, $mdTheming) {
       selectNext: function() {
         return changeSelectedButton(this.$element, 1);
       },
-      selectPrevious : function() {
+      selectPrevious: function() {
         return changeSelectedButton(this.$element, -1);
       },
       setActiveDescendant: function (radioId) {
@@ -147,10 +151,7 @@ function mdRadioGroupDirective($mdUtil, $mdConstant, $mdTheming) {
    */
   function changeSelectedButton(parent, increment) {
     // Coerce all child radio buttons into an array, then wrap then in an iterator
-    var buttons = $mdUtil.iterator(
-      Array.prototype.slice.call(parent[0].querySelectorAll('md-radio-button')),
-      true
-    );
+    var buttons = $mdUtil.iterator(parent[0].querySelectorAll('md-radio-button'), true);
 
     if (buttons.count()) {
       var validate = function (button) {
@@ -190,7 +191,7 @@ function mdRadioGroupDirective($mdUtil, $mdConstant, $mdTheming) {
  * @param {string} value The value to which the expression should be set when selected.
  * @param {string=} name Property name of the form under which the control is published.
  * @param {string=} ariaLabel Adds label to radio button for accessibility.
- * Defaults to radio button's text. If no default text is found, a warning will be logged.
+ * Defaults to radio button's text. If no text content is available, a warning will be logged.
  *
  * @usage
  * <hljs lang="html">

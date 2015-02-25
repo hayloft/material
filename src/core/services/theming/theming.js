@@ -53,7 +53,8 @@ var DARK_SHADOW = '1px 1px 0px rgba(0,0,0,0.4), -1px -1px 0px rgba(0,0,0,0.4)';
 var LIGHT_SHADOW = '';
 
 var DARK_CONTRAST_COLOR = colorToRgbaArray('rgba(0,0,0,0.87)');
-var LIGHT_CONTRAST_COLOR = colorToRgbaArray('rgb(255,255,255)');
+var LIGHT_CONTRAST_COLOR = colorToRgbaArray('rgba(255,255,255,0.87');
+var STRONG_LIGHT_CONTRAST_COLOR = colorToRgbaArray('rgb(255,255,255)');
 
 var THEME_COLOR_TYPES = ['primary', 'accent', 'warn', 'background'];
 var DEFAULT_COLOR_TYPE = 'primary';
@@ -61,10 +62,10 @@ var DEFAULT_COLOR_TYPE = 'primary';
 // A color in a theme will use these hues by default, if not specified by user.
 var LIGHT_DEFAULT_HUES = {
   'accent': {
-    'default': 'A700',
-    'hue-1': 'A200',
+    'default': 'A200',
+    'hue-1': 'A100',
     'hue-2': 'A400',
-    'hue-3': 'A100'
+    'hue-3': 'A700'
   }
 };
 var DARK_DEFAULT_HUES = {
@@ -154,7 +155,7 @@ function ThemingProvider($mdColorPalette) {
   // Register a theme (which is a collection of color palettes to use with various states
   // ie. warn, accent, primary )
   // Optionally inherit from an existing theme
-  // $mdThemingProvider.theme('custom-theme').primaryColor('red');
+  // $mdThemingProvider.theme('custom-theme').primaryPalette('red');
   function registerTheme(name, inheritFrom) {
     inheritFrom = inheritFrom || 'default';
     if (THEMES[name]) return THEMES[name];
@@ -219,7 +220,7 @@ function ThemingProvider($mdColorPalette) {
 
     THEME_COLOR_TYPES.forEach(function(colorType) {
       var defaultHues = (self.isDark ? DARK_DEFAULT_HUES : LIGHT_DEFAULT_HUES)[colorType];
-      self[colorType + 'Color'] = function setColorType(paletteName, hues) {
+      self[colorType + 'Palette'] = function setPaletteType(paletteName, hues) {
         var color = self.colors[colorType] = {
           name: paletteName,
           hues: angular.extend({}, defaultHues, hues)
@@ -248,8 +249,14 @@ function ThemingProvider($mdColorPalette) {
             );
           }
         });
-
         return self;
+      };
+
+      self[colorType + 'Color'] = function() {
+        var args = Array.prototype.slice.call(arguments);
+        console.warn('$mdThemingProviderTheme.' + colorType + 'Color() has been deprecated. ' +
+                     'Use $mdThemingProviderTheme.' + colorType + 'Palette() instead.');
+        return self[colorType + 'Palette'].apply(self, args);
       };
     });
   }
@@ -275,7 +282,7 @@ function ThemingProvider($mdColorPalette) {
    * @param {el=} element to apply theming to
    */
   /* @ngInject */
-  function ThemingService($rootScope) {
+  function ThemingService($rootScope, $log) {
     applyTheme.inherit = function(el, parent) {
       var ctrl = parent.controller('mdTheme');
 
@@ -291,6 +298,10 @@ function ThemingProvider($mdColorPalette) {
       }
 
       function changeTheme(theme) {
+        if (!registered(theme)) {
+          $log.warn('Attempted to use unregistered theme \'' + theme + '\'. ' +
+                    'Register it with $mdThemingProvider.theme().');
+        }
         var oldTheme = el.data('$mdThemeName');
         if (oldTheme) el.removeClass('md-' + oldTheme +'-theme');
         el.addClass('md-' + theme + '-theme');
@@ -298,7 +309,17 @@ function ThemingProvider($mdColorPalette) {
       }
     };
 
+    applyTheme.registered = registered;
+    applyTheme.defaultTheme = function() {
+      return defaultTheme;
+    };
+
     return applyTheme;
+
+    function registered(theme) {
+      if (theme === undefined || theme === '') return true;
+      return THEMES[theme] !== undefined;
+    }
 
     function applyTheme(scope, el) {
       // Allow us to be invoked via a linking function signature.
@@ -314,13 +335,16 @@ function ThemingProvider($mdColorPalette) {
   }
 }
 
-function ThemingDirective($interpolate) {
+function ThemingDirective($mdTheming, $interpolate, $log) {
   return {
     priority: 100,
     link: {
       pre: function(scope, el, attrs) {
         var ctrl = {
           $setTheme: function(theme) {
+            if (!$mdTheming.registered(theme)) {
+              $log.warn('attempted to use unregistered theme \'' + theme + '\'');
+            }
             ctrl.$mdTheme = theme;
           }
         };
@@ -345,7 +369,7 @@ function parseRules(theme, colorType, rules) {
 
   var themeNameRegex = new RegExp('.md-' + theme.name + '-theme', 'g');
   // Matches '{{ primary-color }}', etc
-  var hueRegex = new RegExp('(\'|\")?{{\\s*\(' + colorType + '\)-\(color|contrast\)\-\?\(\\d\\.\?\\d\*\)\?\\s*}}(\"|\')?','g');
+  var hueRegex = new RegExp('(\'|")?{{\\s*(' + colorType + ')-(color|contrast)-?(\\d\\.?\\d*)?\\s*}}(\"|\')?','g');
   var simpleVariableRegex = /'?"?\{\{\s*([a-zA-Z]+)-(A?\d+|hue\-[0-3]|shadow)-?(\d\.?\d*)?\s*\}\}'?"?/g;
   var palette = PALETTES[color.name];
 
@@ -400,7 +424,7 @@ function generateThemes($injector) {
   THEME_COLOR_TYPES.forEach(function(type) {
     rulesByType[type] = '';
   });
-  var ruleMatchRegex = new RegExp('md-\(' + THEME_COLOR_TYPES.join('\|') + '\)', 'g');
+  var ruleMatchRegex = new RegExp('md-(' + THEME_COLOR_TYPES.join('|') + ')', 'g');
 
   // Sort the rules based on type, allowing us to do color substitution on a per-type basis
   rules.forEach(function(rule) {
@@ -432,6 +456,10 @@ function generateThemes($injector) {
     THEME_COLOR_TYPES.forEach(function(colorType) {
       styleString += parseRules(theme, colorType, rulesByType[colorType] + '');
     });
+    if (theme.colors.primary.name == theme.colors.accent.name) {
+      console.warn("$mdThemingProvider: Using the same palette for primary and" +
+                   " accent. This violates the material design spec.");
+    }
   });
 
   // Insert our newly minted styles into the DOM
@@ -448,15 +476,18 @@ function generateThemes($injector) {
   function sanitizePalette(palette) {
     var defaultContrast = palette.contrastDefaultColor;
     var lightColors = palette.contrastLightColors || [];
+    var strongLightColors = palette.contrastStrongLightColors || [];
     var darkColors = palette.contrastDarkColors || [];
 
-    // Sass provides these colors as space-separated lists
+    // These colors are provided as space-separated lists
     if (typeof lightColors === 'string') lightColors = lightColors.split(' ');
+    if (typeof strongLightColors === 'string') strongLightColors = strongLightColors.split(' ');
     if (typeof darkColors === 'string') darkColors = darkColors.split(' ');
 
     // Cleanup after ourselves
     delete palette.contrastDefaultColor;
     delete palette.contrastLightColors;
+    delete palette.contrastStrongLightColors;
     delete palette.contrastDarkColors;
 
     // Change { 'A100': '#fffeee' } to { 'A100': { value: '#fffeee', contrast:DARK_CONTRAST_COLOR }
@@ -477,9 +508,19 @@ function generateThemes($injector) {
       };
       function getContrastColor() {
         if (defaultContrast === 'light') {
-          return darkColors.indexOf(hueName) > -1 ? DARK_CONTRAST_COLOR : LIGHT_CONTRAST_COLOR;
+          if (darkColors.indexOf(hueName) > -1) {
+            return DARK_CONTRAST_COLOR;
+          } else {
+            return strongLightColors.indexOf(hueName) > -1 ? STRONG_LIGHT_CONTRAST_COLOR 
+              : LIGHT_CONTRAST_COLOR;
+          }
         } else {
-          return lightColors.indexOf(hueName) > -1 ? LIGHT_CONTRAST_COLOR : DARK_CONTRAST_COLOR;
+          if (lightColors.indexOf(hueName) > -1) {
+            return strongLightColors.indexOf(hueName) > -1 ? STRONG_LIGHT_CONTRAST_COLOR 
+              : LIGHT_CONTRAST_COLOR;
+          } else {
+            return DARK_CONTRAST_COLOR;
+          }
         }
       }
     });
@@ -502,8 +543,8 @@ function checkValidPalette(theme, colorType) {
 function colorToRgbaArray(clr) {
   if (angular.isArray(clr) && clr.length == 3) return clr;
   if (/^rgb/.test(clr)) {
-    return clr.replace(/(^\s*rgba?\(|\)\s*$)/g, '').split(',').map(function(value) {
-      return parseInt(value, 10);
+    return clr.replace(/(^\s*rgba?\(|\)\s*$)/g, '').split(',').map(function(value, i) {
+      return i == 3 ? parseFloat(value, 10) : parseInt(value, 10);
     });
   }
   if (clr.charAt(0) == '#') clr = clr.substring(1);
@@ -522,8 +563,11 @@ function colorToRgbaArray(clr) {
 }
 
 function rgba(rgbArray, opacity) {
-  if (rgbArray.length == 4) opacity = rgbArray.pop();
-  return opacity && opacity.length ?
+  if (rgbArray.length == 4) {
+    rgbArray = angular.copy(rgbArray);
+    opacity ? rgbArray.pop() : opacity = rgbArray.pop();
+  }
+  return opacity && (typeof opacity == 'number' || (typeof opacity == 'string' && opacity.length)) ?
     'rgba(' + rgbArray.join(',') + ',' + opacity + ')' :
     'rgb(' + rgbArray.join(',') + ')';
 }

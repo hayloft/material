@@ -39,12 +39,16 @@ function InterimElementProvider() {
    */
   function createInterimElementProvider(interimFactoryName) {
     var EXPOSED_METHODS = ['onHide', 'onShow', 'onRemove'];
+
+    var customMethods = {};
     var providerConfig = {
       presets: {}
     };
+
     var provider = {
       setDefaults: setDefaults,
       addPreset: addPreset,
+      addMethod: addMethod,
       $get: factory
     };
 
@@ -64,6 +68,15 @@ function InterimElementProvider() {
     function setDefaults(definition) {
       providerConfig.optionsFactory = definition.options;
       providerConfig.methods = (definition.methods || []).concat(EXPOSED_METHODS);
+      return provider;
+    }
+
+    /**
+     * Add a method to the factory that isn't specific to any interim element operations
+     */
+
+    function addMethod(name, fn) {
+      customMethods[name] = fn;
       return provider;
     }
 
@@ -112,6 +125,11 @@ function InterimElementProvider() {
       defaultMethods = providerConfig.methods || [];
       // This must be invoked after the publicService is initialized
       defaultOptions = invokeFactory(providerConfig.optionsFactory, {});
+
+      // Copy over the simple custom methods
+      angular.forEach(customMethods, function(fn, name) {
+        publicService[name] = fn;
+      });
 
       angular.forEach(providerConfig.presets, function(definition, name) {
         var presetDefaults = invokeFactory(definition.optionsFactory, {});
@@ -263,11 +281,9 @@ function InterimElementProvider() {
        */
       function hide(response) {
         var interimElement = stack.shift();
-        interimElement && interimElement.remove().then(function() {
+        return interimElement && interimElement.remove().then(function() {
           interimElement.deferred.resolve(response);
         });
-
-        return interimElement ? interimElement.deferred.promise : $q.when(response);
       }
 
       /*
@@ -279,16 +295,14 @@ function InterimElementProvider() {
        * Removes the `$interimElement` from the DOM and rejects the promise returned from `show`
        *
        * @param {*} reason Data to reject the promise with
-       * @returns Promise that will be rejected after the element has been removed.
+       * @returns Promise that will be resolved after the element has been removed.
        *
        */
       function cancel(reason) {
         var interimElement = stack.shift();
-        interimElement && interimElement.remove().then(function() {
+        return $q.when(interimElement && interimElement.remove().then(function() {
           interimElement.deferred.reject(reason);
-        });
-
-        return interimElement ? interimElement.deferred.promise : $q.reject(reason);
+        }));
       }
 
 
@@ -298,10 +312,11 @@ function InterimElementProvider() {
        */
       function InterimElement(options) {
         var self;
-        var hideTimeout, element;
+        var hideTimeout, element, showDone, removeDone;
 
         options = options || {};
         options = angular.extend({
+          preserveScope: false,
           scope: options.scope || $rootScope.$new(options.isolateScope),
           onShow: function(scope, element, options) {
             return $animate.enter(element, options.parent);
@@ -321,19 +336,28 @@ function InterimElementProvider() {
           options: options,
           deferred: $q.defer(),
           show: function() {
-            return $mdCompiler.compile(options).then(function(compileData) {
+            return showDone = $mdCompiler.compile(options).then(function(compileData) {
               angular.extend(compileData.locals, self.options);
 
+              element = compileData.link(options.scope);
+
               // Search for parent at insertion time, if not specified
-              if (angular.isString(options.parent)) {
+              if (angular.isFunction(options.parent)) {
+                options.parent = options.parent(options.scope, element, options);
+              } else if (angular.isString(options.parent)) {
                 options.parent = angular.element($document[0].querySelector(options.parent));
-              } else if (!options.parent) {
+              }
+
+              // If parent querySelector/getter function fails, or it's just null,
+              // find a default.
+              if (!(options.parent || {}).length) {
                 options.parent = $rootElement.find('body');
                 if (!options.parent.length) options.parent = $rootElement;
               }
 
               element = compileData.link(options.scope);
               element.css('z-index', options.zIndex);
+
               if (options.themable) $mdTheming(element);
               var ret = options.onShow(options.scope, element, options);
               return $q.when(ret)
@@ -348,7 +372,7 @@ function InterimElementProvider() {
                   hideTimeout = $timeout(service.cancel, options.hideDelay) ;
                 }
               }
-            });
+            }, function(reason) { showDone = true; self.deferred.reject(reason); });
           },
           cancelTimeout: function() {
             if (hideTimeout) {
@@ -358,9 +382,12 @@ function InterimElementProvider() {
           },
           remove: function() {
             self.cancelTimeout();
-            var ret = options.onRemove(options.scope, element, options);
-            return $q.when(ret).then(function() {
-              options.scope.$destroy();
+            return removeDone = $q.when(showDone).then(function() {
+              var ret = element ? options.onRemove(options.scope, element, options) : true;
+              return $q.when(ret).then(function() {
+                if (!options.preserveScope) options.scope.$destroy();
+                removeDone = true;
+              });
             });
           }
         };

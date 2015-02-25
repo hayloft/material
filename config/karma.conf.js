@@ -10,7 +10,7 @@ module.exports = function(config) {
       // demos in the tests, and Karma doesn't support advanced
       // globbing.
       'src/components/*/*.js',
-      'src/components/tabs/js/*.js'
+      'src/components/*/js/*.js'
   ];
 
   var COMPILED_SRC = [
@@ -35,7 +35,7 @@ module.exports = function(config) {
       'bower_components/angular-animate/angular-animate.js',
       'bower_components/angular-aria/angular-aria.js',
       'bower_components/angular-mocks/angular-mocks.js',
-      'bower_components/hammerjs/hammer.js'
+      'config/test-utils.js'
     ].concat(testSrc),
 
     port: 9876,

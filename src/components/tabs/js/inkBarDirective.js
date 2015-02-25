@@ -20,10 +20,10 @@ function MdTabInkDirective($$rAF) {
   };
 
   function postLink(scope, element, attr, ctrls) {
-    if (ctrls[0]) return;
+    var mdNoBar = !!ctrls[0];
 
     var tabsCtrl = ctrls[1],
-        debouncedUpdateBar = $$rAF.debounce(updateBar);
+        debouncedUpdateBar = $$rAF.throttle(updateBar);
 
     tabsCtrl.inkBarElement = element;
 
@@ -31,7 +31,7 @@ function MdTabInkDirective($$rAF) {
 
     function updateBar() {
       var selected = tabsCtrl.getSelectedItem();
-      var hideInkBar = !selected || tabsCtrl.count() < 2;
+      var hideInkBar = !selected || tabsCtrl.count() < 2 || mdNoBar;
 
       element.css('display', hideInkBar ? 'none' : 'block');
 
@@ -47,7 +47,7 @@ function MdTabInkDirective($$rAF) {
         element
             .removeClass(classNames.join(' '))
             .addClass(classNames[classIndex])
-            .css({ left: (data.left + 1) + 'px', right: right + 'px' });
+            .css({ left: data.left + 'px', right: right + 'px' });
 
         lastIndex = index;
       }

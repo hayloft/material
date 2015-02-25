@@ -10,33 +10,94 @@
 var nextUniqueId = ['0','0','0'];
 
 angular.module('material.core')
-.factory('$mdUtil', function($cacheFactory, $document, $timeout) {
+.factory('$mdUtil', function($cacheFactory, $document, $timeout, $q, $window, $mdConstant) {
   var Util;
+
+  function getNode(el) {
+    return el[0] || el;
+  }
+
   return Util = {
-    now: window.performance ? angular.bind(window.performance, window.performance.now) : Date.now,
+    now: window.performance ?
+      angular.bind(window.performance, window.performance.now) : 
+      Date.now,
 
-    attachDragBehavior: attachDragBehavior,
-
-    elementRect: function(element, offsetParent) {
-      var node = element[0];
-      offsetParent = offsetParent || node.offsetParent || document.body;
-      offsetParent = offsetParent[0] || offsetParent;
+    clientRect: function(element, offsetParent, isOffsetRect) {
+      var node = getNode(element);
+      offsetParent = getNode(offsetParent || node.offsetParent || document.body);
       var nodeRect = node.getBoundingClientRect();
-      var parentRect = offsetParent.getBoundingClientRect();
+
+      // The user can ask for an offsetRect: a rect relative to the offsetParent,
+      // or a clientRect: a rect relative to the page
+      var offsetRect = isOffsetRect ?
+        offsetParent.getBoundingClientRect() : 
+        { left: 0, top: 0, width: 0, height: 0 };
       return {
-        left: nodeRect.left - parentRect.left + offsetParent.scrollLeft,
-        top: nodeRect.top - parentRect.top + offsetParent.scrollTop,
+        left: nodeRect.left - offsetRect.left + offsetParent.scrollLeft,
+        top: nodeRect.top - offsetRect.top + offsetParent.scrollTop,
         width: nodeRect.width,
         height: nodeRect.height
       };
     },
+    offsetRect: function(element, offsetParent) {
+      return Util.clientRect(element, offsetParent, true);
+    },
+
+    floatingScrollbars: function() {
+      if (this.floatingScrollbars.cached === undefined) {
+        var tempNode = angular.element('<div style="z-index: -1; position: absolute; height: 1px; overflow-y: scroll"><div style="height: 2px;"></div></div>');
+        $document[0].body.appendChild(tempNode[0]);
+        this.floatingScrollbars.cached = (tempNode[0].offsetWidth == tempNode[0].childNodes[0].offsetWidth);
+        tempNode.remove();
+      }
+      return this.floatingScrollbars.cached;
+    },
+
+    // Mobile safari only allows you to set focus in click event listeners...
+    forceFocus: function(element) {
+      var node = element[0] || element;
+
+      document.addEventListener('click', function focusOnClick(ev) {
+        if (ev.target === node && ev.$focus) {
+          node.focus();
+          ev.stopImmediatePropagation();
+          ev.preventDefault();
+          node.removeEventListener('click', focusOnClick);
+        }
+      }, true);
+
+      var newEvent = document.createEvent('MouseEvents');
+      newEvent.initMouseEvent('click', false, true, window, {}, 0, 0, 0, 0,
+                       false, false, false, false, 0, null);
+      newEvent.$material = true;
+      newEvent.$focus = true;
+      node.dispatchEvent(newEvent);
+    },
+
+    transitionEndPromise: function(element) {
+      var deferred = $q.defer();
+      element.on($mdConstant.CSS.TRANSITIONEND, finished);
+      function finished(ev) {
+        // Make sure this transitionend didn't bubble up from a child
+        if (ev.target === element[0]) {
+          element.off($mdConstant.CSS.TRANSITIONEND, finished);
+          deferred.resolve();
+        }
+      }
+      return deferred.promise;
+    },
 
     fakeNgModel: function() {
       return {
+        $fake: true,
+        $setTouched : angular.noop,
         $setViewValue: function(value) {
           this.$viewValue = value;
           this.$render(value);
           this.$viewChangeListeners.forEach(function(cb) { cb(); });
+        },
+        $isEmpty: function(value) {
+          return (''+value).length === 0;
         },
         $parsers: [],
         $formatters: [],
@@ -44,11 +105,6 @@ angular.module('material.core')
         $render: angular.noop
       };
     },
-
-    /**
-     * @see cacheFactory below
-     */
-    cacheFactory: cacheFactory,
 
     // Returns a function, that, as long as it continues to be invoked, will not
     // be triggered. The function will be called after it stops being called for
@@ -87,6 +143,16 @@ angular.module('material.core')
           recent = now;
         }
       };
+    },
+
+    /**
+     * Measures the number of milliseconds taken to run the provided callback
+     * function. Uses a high-precision timer if available.
+     */
+    time: function time(cb) {
+      var start = Util.now();
+      cb();
+      return Util.now() - start;
     },
 
     /**
@@ -180,145 +246,6 @@ angular.module('material.core')
     }
   };
 
-
-  function attachDragBehavior(scope, element, options) {
-    // The state of the current drag & previous drag
-    var drag;
-    var previousDrag;
-    // Whether the pointer is currently down on this element.
-    var pointerIsDown;
-    var START_EVENTS = 'mousedown touchstart pointerdown';
-    var MOVE_EVENTS = 'mousemove touchmove pointermove';
-    var END_EVENTS = 'mouseup mouseleave touchend touchcancel pointerup pointercancel';
-
-    // Listen to move and end events on document. End events especially could have bubbled up
-    // from the child.
-    element.on(START_EVENTS, startDrag);
-    $document.on(MOVE_EVENTS, doDrag)
-      .on(END_EVENTS, endDrag);
-
-    scope.$on('$destroy', cleanup);
-
-    return cleanup;
-
-    function cleanup() {
-      if (cleanup.called) return;
-      cleanup.called = true;
-
-      element.off(START_EVENTS, startDrag);
-      $document.off(MOVE_EVENTS, doDrag)
-        .off(END_EVENTS, endDrag);
-      drag = pointerIsDown = false;
-    }
-
-    function startDrag(ev) {
-      var eventType = ev.type.charAt(0);
-      var now = Util.now();
-      // iOS & old android bug: after a touch event, iOS sends a click event 350 ms later.
-      // Don't allow a drag of a different pointerType than the previous drag if it has been
-      // less than 400ms.
-      if (previousDrag && previousDrag.pointerType !== eventType &&
-          (now - previousDrag.endTime < 400)) {
-        return;
-      }
-      if (pointerIsDown) return;
-      pointerIsDown = true;
-
-      drag = {
-        // Restrict this drag to whatever started it: if a mousedown started the drag,
-        // don't let anything but mouse events continue it.
-        pointerType: eventType,
-        startX: getPosition(ev),
-        startTime: now
-      };
-
-      element.one('$md.dragstart', function(ev) {
-        // Allow user to cancel by preventing default
-        if (ev.defaultPrevented) drag = null;
-      });
-      element.triggerHandler('$md.dragstart', drag);
-    }
-    function doDrag(ev) {
-      if (!drag || !isProperEventType(ev, drag)) return;
-
-      if (drag.pointerType === 't' || drag.pointerType === 'p') {
-        // No scrolling for touch/pointer events
-        ev.preventDefault();
-      }
-      updateDragState(ev);
-      element.triggerHandler('$md.drag', drag);
-    }
-    function endDrag(ev) {
-      pointerIsDown = false;
-      if (!drag || !isProperEventType(ev, drag)) return;
-
-      drag.endTime = Util.now();
-      updateDragState(ev);
-
-      element.triggerHandler('$md.dragend', drag);
-
-      previousDrag = drag;
-      drag = null;
-    }
-
-    function updateDragState(ev) {
-      var x = getPosition(ev);
-      drag.distance = drag.startX - x;
-      drag.direction = drag.distance > 0 ? 'left' : (drag.distance < 0 ? 'right' : '');
-      drag.duration = drag.startTime - Util.now();
-      drag.velocity = Math.abs(drag.duration) / drag.time;
-    }
-    function getPosition(ev) {
-      ev = ev.originalEvent || ev; //support jQuery events
-      var point = (ev.touches && ev.touches[0]) ||
-        (ev.changedTouches && ev.changedTouches[0]) ||
-        ev;
-      return point.pageX;
-    }
-    function isProperEventType(ev, drag) {
-      return drag && ev && (ev.type || '').charAt(0) === drag.pointerType;
-    }
-  }
-
-  /*
-   * Inject a 'keys()' method into Angular's $cacheFactory. Then
-   * head-hook all other methods
-   *
-   */
-  function cacheFactory(id, options) {
-    var cache = $cacheFactory(id, options);
-    var keys = {};
-
-    cache._put = cache.put;
-    cache.put = function(k,v) {
-      keys[k] = true;
-      return cache._put(k, v);
-    };
-
-    cache._remove = cache.remove;
-    cache.remove = function(k) {
-      delete keys[k];
-      return cache._remove(k);
-    };
-
-    cache._removeAll = cache.removeAll;
-    cache.removeAll = function() {
-      keys = {};
-      return cache._removeAll();
-    };
-
-    cache._destroy = cache.destroy;
-    cache.destroy = function() {
-      keys = {};
-      return cache._destroy();
-    };
-
-    cache.keys = function() {
-      return Object.keys(keys);
-    };
-
-    return cache;
-  }
 });
 
 /*

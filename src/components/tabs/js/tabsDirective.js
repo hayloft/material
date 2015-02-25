@@ -23,7 +23,7 @@ angular.module('material.components.tabs')
  *    <md-tab label="Tab #1"></md-tab>
  *    <md-tab label="Tab #2"></md-tab>
  *    <md-tab label="Tab #3"></md-tab>
- *  <md-tabs>
+ *  </md-tabs>
  *  </hljs>
  *
  * Tabs supports three (3) usage scenarios:
@@ -110,6 +110,7 @@ function TabsDirective($mdTheming) {
           'ng-if="pagination.active && pagination.hasPrev" ' +
           'ng-click="pagination.clickPrevious()" ' +
           'aria-hidden="true">' +
+          '<md-icon md-svg-icon="tabs-arrow"></md-icon>' +
         '</button>' +
 
         // overflow: hidden container when paginating
@@ -124,6 +125,7 @@ function TabsDirective($mdTheming) {
           'ng-if="pagination.active && pagination.hasNext" ' +
           'ng-click="pagination.clickNext()" ' +
           'aria-hidden="true">' +
+          '<md-icon md-svg-icon="tabs-arrow"></md-icon>' +
         '</button>' +
 
       '</section>' +
@@ -156,7 +158,7 @@ function TabsDirective($mdTheming) {
         if (tabsCtrl.inRange(newIndex)) {
           var newTab = tabsCtrl.itemAt(newIndex);
           while (newTab && newTab.isDisabled()) {
-            newTab = newIndex > oldIndex
+            newTab = newIndex > oldIndex 
                 ? tabsCtrl.next(newTab)
                 : tabsCtrl.previous(newTab);
           }

@@ -12,7 +12,7 @@ angular.module('material.components.tabs')
  * @restrict E
  *
  * @description
- * `<md-tab>` is the nested directive used [within `<md-tabs>`] to specify each tab with a **label** and optional *view content*.
+ * Use the `<md-tab>` a nested directive used within `<md-tabs>` to specify a tab with a **label** and optional *view content*.
  *
  * If the `label` attribute is not specified, then an optional `<md-tab-label>` tag can be used to specify more
  * complex tab header markup. If neither the **label** nor the **md-tab-label** are specified, then the nested
@@ -91,6 +91,8 @@ function MdTabDirective($mdInkRipple, $compile, $mdUtil, $mdConstant, $timeout) 
       var tabItemCtrl = ctrls[0]; // Controller for THIS tabItemCtrl
       var tabsCtrl = ctrls[1]; // Controller for ALL tabs
 
+      $timeout(element.addClass.bind(element, 'md-tab-themed'), 0, false);
+
       scope.$watch(
           function () { return attr.label; },
           function () { $timeout(function () { tabsCtrl.scope.$broadcast('$mdTabsChanged'); }, 0, false); }
@@ -99,12 +101,11 @@ function MdTabDirective($mdInkRipple, $compile, $mdUtil, $mdConstant, $timeout) 
       transcludeTabContent();
       configureAria();
 
-      var detachRippleFn = $mdInkRipple.attachTabBehavior(scope, element, {
+      $mdInkRipple.attachTabBehavior(scope, element, {
         colorElement: tabsCtrl.inkBarElement
       });
       tabsCtrl.add(tabItemCtrl);
       scope.$on('$destroy', function() {
-        detachRippleFn();
         tabsCtrl.remove(tabItemCtrl);
       });
       element.on('$destroy', function () {
@@ -118,7 +119,6 @@ function MdTabDirective($mdInkRipple, $compile, $mdUtil, $mdConstant, $timeout) 
         element.on('click', defaultClickListener);
       }
       element.on('keydown', keydownListener);
-      scope.onSwipe = onSwipe;
 
       if (angular.isNumber(scope.$parent.$index)) {
         watchNgRepeatIndex();
@@ -160,16 +160,6 @@ function MdTabDirective($mdInkRipple, $compile, $mdUtil, $mdConstant, $timeout) 
             tabsCtrl.focus(tabsCtrl.next(tabItemCtrl));
           });
         }
-      }
-
-      function onSwipe(ev) {
-        scope.$apply(function() {
-          if (ev.type === 'swipeleft') {
-            tabsCtrl.select(tabsCtrl.next());
-          } else {
-            tabsCtrl.select(tabsCtrl.previous());
-          }
-        });
       }
 
       // If tabItemCtrl is part of an ngRepeat, move the tabItemCtrl in our internal array

@@ -1,7 +1,5 @@
 describe('mdSidenav', function() {
-  beforeEach(module('material.components.sidenav', 'ngAnimateMock', function($provide) {
-    $provide.value('$$rAF', function(cb) { cb(); });
-  }));
+  beforeEach(module('material.components.sidenav', 'ngAnimateMock'));
 
   function setup(attrs) {
     var el;
@@ -233,6 +231,27 @@ describe('mdSidenav', function() {
       scope.$apply();
 
       expect(el.hasClass('md-closed')).toBe(true);
+    }));
+
+    it('exposes state', inject(function($mdSidenav) {
+      var el = setup('md-component-id="stateTest" md-is-open="shouldOpen" md-is-locked-open="shouldLockOpen"');
+      var scope = el.scope();
+
+      var instance = $mdSidenav('stateTest');
+      expect(instance.isOpen()).toBe(false);
+      expect(instance.isLockedOpen()).toBe(false);
+
+      scope.shouldOpen = true;
+      scope.shouldLockOpen = true;
+      scope.$digest();
+      expect(instance.isOpen()).toBe(true);
+      expect(instance.isLockedOpen()).toBe(true);
+
+      scope.shouldOpen = false;
+      scope.shouldLockOpen = true;
+      scope.$digest();
+      expect(instance.isOpen()).toBe(false);
+      expect(instance.isLockedOpen()).toBe(true);
     }));
   });
 

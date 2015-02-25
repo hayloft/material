@@ -9,5 +9,6 @@ node_modules
 /.idea/
 /components
 /vendor
+/material-font
 
 .polymer-qp

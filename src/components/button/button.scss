@@ -5,6 +5,8 @@ $button-padding: 2px 6px 3px !default;
 $button-fab-width: 56px !default;
 $button-fab-height: 56px !default;
 $button-fab-padding: 16px !default;
+$button-fab-mini-width: 40px !default;
+$button-fab-mini-height: 40px !default;
 
 $button-fab-toast-offset: $button-fab-height * 0.75;
 
@@ -22,6 +24,7 @@ $button-fab-toast-offset: $button-fab-height * 0.75;
 }
 
 .md-button {
+  color: currentColor;
 
   user-select: none;
   position: relative; //for child absolute-positioned <canvas>
@@ -51,6 +54,14 @@ $button-fab-toast-offset: $button-fab-height * 0.75;
   transition: box-shadow $swift-ease-out-duration $swift-ease-out-timing-function,
               background-color $swift-ease-out-duration $swift-ease-out-timing-function,
               transform $swift-ease-out-duration $swift-ease-out-timing-function;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:hover {
+    text-decoration: none;
+  }
 
   &.ng-hide {
     transition: none;
@@ -98,8 +109,14 @@ $button-fab-toast-offset: $button-fab-height * 0.75;
     transition-property: transform, box-shadow;
 
     md-icon {
-      line-height: $button-fab-height;
       margin-top: 0;
+    }
+
+    &.md-mini {
+      width: $button-fab-mini-width;
+      height: $button-fab-mini-height;
+      md-icon {
+      }
     }
 
   }

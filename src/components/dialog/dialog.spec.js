@@ -1,6 +1,5 @@
 describe('$mdDialog', function() {
 
-  beforeEach(TestUtil.mockRaf);
   beforeEach(module('material.components.dialog', 'ngAnimateMock'));
 
   beforeEach(inject(function spyOnMdEffects($$q, $animate) {
@@ -17,7 +16,7 @@ describe('$mdDialog', function() {
   describe('#alert()', function() {
     hasConfigurationMethods('alert', [
       'title', 'content', 'ariaLabel',
-      'ok', 'targetEvent'
+      'ok', 'targetEvent', 'theme'
     ]);
 
     it('shows a basic alert dialog', inject(function($animate, $rootScope, $mdDialog, $mdConstant) {
@@ -29,14 +28,15 @@ describe('$mdDialog', function() {
         })
           .title('Title')
           .content('Hello world')
+          .theme('some-theme')
           .ok('Next')
       ).then(function() {
         resolved = true;
       });
-
       $rootScope.$apply();
+      $animate.triggerCallbacks();
       var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      container.triggerHandler('transitionend');
+      container.find('md-dialog').triggerHandler('transitionend');
       $rootScope.$apply();
 
       var title = angular.element(parent[0].querySelector('h2'));
@@ -46,6 +46,10 @@ describe('$mdDialog', function() {
       var buttons = parent.find('md-button');
       expect(buttons.length).toBe(1);
       expect(buttons.eq(0).text()).toBe('Next');
+      var theme = parent.find('md-dialog').attr('md-theme');
+      expect(theme).toBe('some-theme');
+
+
       buttons.eq(0).triggerHandler('click');
       $rootScope.$apply();
       parent.find('md-dialog').triggerHandler('transitionend');
@@ -58,7 +62,7 @@ describe('$mdDialog', function() {
   describe('#confirm()', function() {
     hasConfigurationMethods('confirm', [
       'title', 'content', 'ariaLabel',
-      'ok', 'cancel', 'targetEvent'
+      'ok', 'cancel', 'targetEvent', 'theme'
     ]);
 
     it('shows a basic confirm dialog', inject(function($rootScope, $mdDialog, $animate, $mdConstant) {
@@ -77,9 +81,11 @@ describe('$mdDialog', function() {
       });
 
       $rootScope.$apply();
+      $animate.triggerCallbacks();
       var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      container.triggerHandler('transitionend');
+      container.find('md-dialog').triggerHandler('transitionend');
       $rootScope.$apply();
+      $animate.triggerCallbacks();
 
       var title = parent.find('h2');
       expect(title.text()).toBe('Title');
@@ -89,10 +95,13 @@ describe('$mdDialog', function() {
       expect(buttons.length).toBe(2);
       expect(buttons.eq(0).text()).toBe('Next');
       expect(buttons.eq(1).text()).toBe('Forget it');
+
       buttons.eq(1).triggerHandler('click');
       $rootScope.$digest();
+      $animate.triggerCallbacks();
       parent.find('md-dialog').triggerHandler('transitionend');
-      $rootScope.$apply();
+      $rootScope.$digest();
+      $animate.triggerCallbacks();
       expect(parent.find('h2').length).toBe(0);
       expect(rejected).toBe(true);
     }));
@@ -331,14 +340,15 @@ describe('$mdDialog', function() {
       expect($document.activeElement).toBe(parent[0].querySelector('#focus-target'));
     }));
 
-    it('should only allow one open at a time', inject(function($mdDialog, $rootScope) {
+    it('should only allow one open at a time', inject(function($mdDialog, $rootScope, $animate) {
       var parent = angular.element('<div>');
       $mdDialog.show({
         template: '<md-dialog class="one">',
         parent: parent
       });
-
       $rootScope.$apply();
+      $animate.triggerCallbacks();
+
       expect(parent[0].querySelectorAll('md-dialog.one').length).toBe(1);
       expect(parent[0].querySelectorAll('md-dialog.two').length).toBe(0);
 
@@ -346,10 +356,17 @@ describe('$mdDialog', function() {
         template: '<md-dialog class="two">',
         parent: parent
       });
-
       $rootScope.$apply();
+      $animate.triggerCallbacks();
       parent.find('md-dialog').triggerHandler('transitionend');
       $rootScope.$apply();
+      $animate.triggerCallbacks();
+
+      parent.find('md-dialog').triggerHandler('transitionend');
+      $rootScope.$apply();
+      $animate.triggerCallbacks();
+      $rootScope.$apply();
+      $animate.triggerCallbacks();
       expect(parent[0].querySelectorAll('md-dialog.one').length).toBe(0);
       expect(parent[0].querySelectorAll('md-dialog.two').length).toBe(1);
     }));
@@ -415,7 +432,6 @@ describe('$mdDialog', function() {
 });
 
 describe('$mdDialog with custom interpolation symbols', function() {
-  beforeEach(TestUtil.mockRaf);
   beforeEach(module('material.components.dialog', 'ngAnimateMock'));
 
   beforeEach(module(function($interpolateProvider) {

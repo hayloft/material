@@ -1,6 +1,10 @@
 $button-border-radius: 3px !default;
 $button-fab-border-radius: 50% !default;
 
+md-toolbar .md-button.md-THEME_NAME-theme.md-fab {
+  background-color: white;
+}
+
 .md-button.md-THEME_NAME-theme {
   border-radius: $button-border-radius;
 
@@ -28,16 +32,23 @@ $button-fab-border-radius: 50% !default;
 
   &.md-fab {
     border-radius: $button-fab-border-radius;
-  }
-
-  &.md-raised,
-  &.md-fab {
-    color: '{{background-contrast}}';
-    background-color: '{{background-500-0.185}}';
+    background-color: '{{accent-color}}';
+    color: '{{accent-contrast}}';
     &:not([disabled]) {
       &:hover, 
       &:focus {
-        background-color: '{{background-500-0.3}}';
+        background-color: '{{accent-A700}}';
+      }
+    }
+  }
+
+  &.md-raised {
+    color: '{{background-contrast}}';
+    background-color: '{{background-50}}';
+    &:not([disabled]) {
+      &:hover, 
+      &:focus {
+        background-color: '{{background-200}}';
       }
     }
   }
