@@ -409,7 +409,7 @@ function MdDialogProvider($$interimElementProvider) {
         var computeFrom = (options.parent[0] == $document[0].body && $document[0].documentElement 
                            && $document[0].scrollTop) ? angular.element($document[0].documentElement) : options.parent;
         var parentOffset = computeFrom.prop('scrollTop');
-        options.backdrop = angular.element('<md-backdrop class="md-dialog-backdrop md-opaque">');
+        options.backdrop = angular.element('<md-backdrop class="md-dialog-backdrop md-opaque" style="z-index: ' + options.zIndex + '">');
         $mdTheming.inherit(options.backdrop, options.parent);
         $animate.enter(options.backdrop, options.parent);
         element.css('top', parentOffset +'px');
@@ -429,7 +429,9 @@ function MdDialogProvider($$interimElementProvider) {
         if (options.escapeToClose) {
           options.rootElementKeyupCallback = function(e) {
             if (e.keyCode === $mdConstant.KEY_CODE.ESCAPE) {
-              $timeout($mdDialog.cancel);
+              if (options.stack.indexOf(options.interimElement) == 0) {
+                $timeout($mdDialog.cancel);
+              }
             }
           };
           $rootElement.on('keyup', options.rootElementKeyupCallback);

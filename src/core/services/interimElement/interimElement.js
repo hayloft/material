@@ -258,17 +258,12 @@ function InterimElementProvider() {
        *
        */
       function show(options) {
-        if (stack.length) {
-          return service.cancel().then(function() {
-            return show(options);
-          });
-        } else {
-          var interimElement = new InterimElement(options);
-          stack.push(interimElement);
-          return interimElement.show().then(function() {
-            return interimElement.deferred.promise;
-          });
-        }
+        options.zIndex = 80 + stack.length;
+        var interimElement = new InterimElement(options);
+        stack.unshift(interimElement);
+        return interimElement.show().then(function() {
+          return interimElement.deferred.promise;
+        });
       }
 
       /*
@@ -336,7 +331,7 @@ function InterimElementProvider() {
           options.template = processTemplate(options.template);
         }
 
-        return self = {
+        self = {
           options: options,
           deferred: $q.defer(),
           show: function() {
@@ -371,6 +366,7 @@ function InterimElementProvider() {
                 if (!options.parent.length) options.parent = $rootElement;
               }
 
+              element.css('z-index', options.zIndex);
               if (options.themable) $mdTheming(element);
               var ret = options.onShow(options.scope, element, options);
               return $q.when(ret)
@@ -404,6 +400,11 @@ function InterimElementProvider() {
             });
           }
         };
+
+        options.interimElement = self;
+        options.stack = stack;
+
+        return self;
       }
     };
 
