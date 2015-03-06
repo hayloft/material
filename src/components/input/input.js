@@ -29,6 +29,7 @@ angular.module('material.components.input', [
  * parent is provided.
  *
  * @param md-is-error {expression=} When the given expression evaluates to true, the input container will go into error state. Defaults to erroring if the input has been touched and is invalid.
+ * @param md-no-float {boolean=} When present, placeholders will not be converted to floating labels
  *
  * @usage
  * <hljs lang="html">
@@ -169,8 +170,9 @@ function inputTextareaDirective($mdUtil, $window) {
       setupTextarea();
     }
 
+    var touched = false;
     var isErrorGetter = containerCtrl.isErrorGetter || function() {
-      return ngModelCtrl.$invalid && ngModelCtrl.$touched;
+      return ngModelCtrl.$invalid && (touched || ngModelCtrl.$touched);
     };
     scope.$watch(isErrorGetter, containerCtrl.setInvalid);
 
@@ -182,13 +184,9 @@ function inputTextareaDirective($mdUtil, $window) {
     if (!isReadonly) {
       element
         .on('focus', function(ev) {
+          touched = true;
           containerCtrl.setFocused(true);
-
-          // Error text should not appear before user interaction with the field.
-          // So we need to check on focus also
-          ngModelCtrl.$setTouched();
-          if ( isErrorGetter() ) containerCtrl.setInvalid(true);
-
+          scope.$evalAsync();
         })
         .on('blur', function(ev) {
           containerCtrl.setFocused(false);
@@ -322,6 +320,7 @@ function placeholderDirective() {
 
   function postLink(scope, element, attr, inputContainer) {
     if (!inputContainer) return;
+    if (angular.isDefined(inputContainer.element.attr('md-no-float'))) return;
 
     var placeholderText = attr.placeholder;
     element.removeAttr('placeholder');

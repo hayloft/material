@@ -1,3 +1,62 @@
+<a name="0.8.3"></a>
+### 0.8.3  (2015-03-03)
+
+
+#### Features
+
+* **ripple:** smooths out ripple animations ([ac47ca6c](https://github.com/angular/material/commit/ac47ca6c1df6a873615445d8c1f0cbb3eb3764f7), closes [#1750](https://github.com/angular/material/issues/1750))
+
+
+#### Bug Fixes
+
+* **autocomplete:** clicking on the scrollbar in the dropdown will no longer cause the list to hide ([2731f107](https://github.com/angular/material/commit/2731f1078efdd3c546629376ed71c7068501daf3), closes [#1739](https://github.com/angular/material/issues/1739))
+* **gestures:** resolves jQuery conflict with $mdGesture ([79505888](https://github.com/angular/material/commit/7950588882557a6d1670e2029ddda76d12027c45))
+* **select:**
+  * support rtl direction ([59e30a39](https://github.com/angular/material/commit/59e30a392ed7f0dc43ec71db22b60fcaa800ba7e))
+  * make md-option work with ng-selected ([425a76a3](https://github.com/angular/material/commit/425a76a3a5b4bce767e0f8ad766d7a8773e5463f))
+  * make select work with ng-disabled ([60514054](https://github.com/angular/material/commit/60514054984c3d1c5577c5150e80e7ca9e3a4083))
+  * fix select not setting initial value ([6dc46d52](https://github.com/angular/material/commit/6dc46d52dea21c4de3dc7984fb56d99076fdd1e6))
+  * fix closing select a second time on firefox ([e49a20e8](https://github.com/angular/material/commit/e49a20e85d808ca0533afc40ee11f8337535c315))
+  * fix positioning / sizing on firefox ([67618dc8](https://github.com/angular/material/commit/67618dc8fb5a81b23ed33879b062a6e316477a4a))
+  * fix resetting value for selects without placeholder ([2a0ea163](https://github.com/angular/material/commit/2a0ea1630fb286099a8c27e5035cadc5cc1ed0b8))
+  * fix empty select breaking page ([6e7b36cf](https://github.com/angular/material/commit/6e7b36cfa388227e3879120d3c332fc76e095e32))
+  * make select consistent with md-input ([6aa1c8a7](https://github.com/angular/material/commit/6aa1c8a782b67aee3a31f9ed38c99aebfdb3b1a9))
+  * positioning when to close to bottom or right ([cf78ba9f](https://github.com/angular/material/commit/cf78ba9f1fce7fdc3e613b3c83a4056ed8fb2e40))
+
+
+<a name="0.8.2"></a>
+### 0.8.2  (2015-02-27)
+
+
+#### Features
+
+* **autocomplete:** adds support for `md-delay` to wait until the user stops typing to poll for resu ([70a884a1](https://github.com/angular/material/commit/70a884a164f20b7cfde0c08f66712f86c4789f13))
+
+
+#### Bug Fixes
+
+* **autocomplete:**
+  * cleans up watchers when elements are removed ([7fc0d02c](https://github.com/angular/material/commit/7fc0d02c6009c0c5f688d84cbd76afb9f4262541), closes [#1692](https://github.com/angular/material/issues/1692))
+  * prevents aria message on selection ([e2148f13](https://github.com/angular/material/commit/e2148f13aa802196505106e776a959a648a38010))
+  * addresses accessibility issues ([0bd7afb8](https://github.com/angular/material/commit/0bd7afb81755ea2815c8af646d692e045509f014), closes [#1473](https://github.com/angular/material/issues/1473))
+  * change events will no longer be called on load ([c58d930e](https://github.com/angular/material/commit/c58d930e293ec4105e49391f67d8b31218d474ad))
+* **button:** allow attribute syntax for md-button. ([fc223b0c](https://github.com/angular/material/commit/fc223b0c9f92f03e4a1f2f9d53ac14d699ff02a2), closes [#1661](https://github.com/angular/material/issues/1661))
+* **core:** Remove redeclared variable declaration. ([3454db3c](https://github.com/angular/material/commit/3454db3c3feb8f5f35bad7815a84a26c67c4dd58), closes [#1697](https://github.com/angular/material/issues/1697))
+* **input:**
+  * resolves on-focus validation checks ([2f17c8f4](https://github.com/angular/material/commit/2f17c8f44a628daf4e81bc576a85f27697dd54ab))
+  * error states and  improved for input fields ([747eb9c3](https://github.com/angular/material/commit/747eb9c3f493dfc338901f66108042ca78b5936e), closes [#1485](https://github.com/angular/material/issues/1485), [#1633](https://github.com/angular/material/issues/1633), [#1629](https://github.com/angular/material/issues/1629))
+* **select:**
+  * when nothing selected, focus first option ([50b5d923](https://github.com/angular/material/commit/50b5d923ef92d7fb664bde605c821e643aa1f152))
+  * make space not scroll select ([b8da17a0](https://github.com/angular/material/commit/b8da17a07c0b532527193ed0626cd1e9cd8b319e))
+  * make sure arrow keys always focus next/prev option ([e441abaf](https://github.com/angular/material/commit/e441abaf91aeb706c8fb773b67bde40fb225601d))
+  * render label on external model updates ([6baed64c](https://github.com/angular/material/commit/6baed64c6c20eeabacf8e737e16e5b39de5f39ea))
+  * fix updating of values on change and init ([0e21b3bc](https://github.com/angular/material/commit/0e21b3bc0bb96c9e9982ebd74a4b810e02a2935f))
+  * change placeholder computation to be handled internally ([b4c0a86e](https://github.com/angular/material/commit/b4c0a86eb3c094c5c897895a4bec392b37923f5f))
+  * fix duplicate options when using ng-repeat ([9e0ca443](https://github.com/angular/material/commit/9e0ca4430f9f3add077a21ccb5a963e48a7f7d83))
+  * fix chrome double scroll bars ([4d722ecf](https://github.com/angular/material/commit/4d722ecf9f8240f47e6e8989afcc5388c99669b4))
+* **tooltip:** fixes `md-direction` attribute functionality ([93080cae](https://github.com/angular/material/commit/93080cae36e1bea653b39c85d9345afe798de59f), closes [#1673](https://github.com/angular/material/issues/1673))
+
+
 <a name="0.8.1"></a>
 ### 0.8.1  (2015-02-24)
 
@@ -23,12 +82,9 @@
   * close md-select-menu if md-select is removed ([5e02ad94](https://github.com/angular/material/commit/5e02ad948fc4e68d81b18234102e47e643917b97))
 
 
-<a name="0.8.1"></a>
-### 0.8.1  (2015-02-24)
-
 
 <a name="0.8.0"></a>
-## 0.8.0  (2015-02-23)
+### 0.8.0  (2015-02-23)
 
 
 #### Features

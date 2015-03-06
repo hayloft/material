@@ -18,7 +18,7 @@
 
   <md-sidenav class="site-sidenav md-sidenav-left md-whiteframe-z2"
               md-component-id="left"
-              md-is-locked-open="$media('gt-sm')">
+              md-is-locked-open="$mdMedia('gt-sm')">
 
     <md-toolbar>
       <h1 class="md-toolbar-tools">
@@ -36,7 +36,13 @@
       </h1>
     </md-toolbar>
 
-    <md-content flex>
+    <ul class="skip-links">
+      <li class="md-whiteframe-z2">
+        <md-button ng-click="focusMainContent($event)" href="#">Skip to content</md-button>
+      </li>
+    </ul>
+
+    <md-content flex role="navigation">
       <ul class="docs-menu">
         <li ng-repeat="section in menu.sections" class="parent-list-item" ng-class="{'parentActive' : isSectionSelected(section)}">
           <h2 class="menu-heading" ng-if="section.type === 'heading'" id="heading_{{ section.name | nospace }}">
@@ -76,8 +82,14 @@
           </div>
 
           <span flex></span> <!-- use up the empty space -->
-
           <div class="md-toolbar-item md-tools docs-tools" layout="column" layout-gt-md="row">
+            <div>
+              <md-button ng-if="!menu.currentPage || menu.currentSection.name === 'Getting Started'"
+                         target="_blank"
+                         ng-href="{{BUILDCONFIG.repository}}/commit/{{BUILDCONFIG.commit}}" >
+                  {{BUILDCONFIG.version}}  -  SHA {{BUILDCONFIG.commit.substring(0,7)}}
+              </md-button>
+            </div>
             <div ng-repeat="doc in currentComponent.docs">
               <md-button ng-href="#{{doc.url}}"
                 ng-class="{hide: path().indexOf('demo') == -1}"

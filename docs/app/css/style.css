@@ -4,7 +4,7 @@ body {
   overflow: hidden;
   max-width: 100%;
   max-height: 100%;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 a {
@@ -49,6 +49,31 @@ ul li {
 }
 ul li:first-child {
   margin-top: 0;
+}
+
+ul.skip-links li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.skip-links li a {
+  background-color: #fff;
+  display: block;
+  margin: 0.5em 0 0.5em 0.5em;
+  opacity: 0;
+  left: 0;
+  position: absolute;
+  text-decoration: none;
+  top: 0;
+  width: 92%;
+  -webkit-transition: opacity   0.15s linear;
+  -moz-transition: opacity  0.15s linear;
+  transition: opacity   0.15s linear;
+}
+ul.skip-links li a:focus {
+  background-color: #fff !important;
+  opacity: 1;
+  z-index: 2;
 }
 
 pre {

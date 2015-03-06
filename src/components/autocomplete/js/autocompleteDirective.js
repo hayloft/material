@@ -23,6 +23,7 @@
    * @param {expression} md-search-text-change An expression to be run each time the search text updates
    * @param {boolean=} ng-disabled Determines whether or not to disable the input field
    * @param {number=} md-min-length Specifies the minimum length of text before autocomplete will make suggestions
+   * @param {number=} md-delay Specifies the amount of time (in milliseconds) to wait before looking for results
    *
    * @usage
    * <hljs lang="html">
@@ -55,12 +56,17 @@
               type="button"\
               ng-if="searchText"\
               ng-click="$mdAutocompleteCtrl.clear()">\
-              <md-icon md-svg-icon="cancel"></md-icon>\
-              <span class="visually-hidden">Clear</span>\
-              </button>\
-          <md-progress-linear ng-if="$mdAutocompleteCtrl.loading" md-mode="indeterminate"></md-progress-linear>\
+            <md-icon md-svg-icon="cancel"></md-icon>\
+            <span class="visually-hidden">Clear</span>\
+          </button>\
+          <md-progress-linear\
+              ng-if="$mdAutocompleteCtrl.loading"\
+              md-mode="indeterminate"></md-progress-linear>\
         </md-autocomplete-wrap>\
-        <ul role="presentation">\
+        <ul role="presentation"\
+            ng-mouseenter="$mdAutocompleteCtrl.listEnter()"\
+            ng-mouseleave="$mdAutocompleteCtrl.listLeave()"\
+            ng-mouseup="$mdAutocompleteCtrl.mouseUp()">\
           <li ng-repeat="(index, item) in $mdAutocompleteCtrl.matches"\
               ng-class="{ selected: index === $mdAutocompleteCtrl.index }"\
               ng-show="searchText && !$mdAutocompleteCtrl.hidden"\
@@ -73,9 +79,7 @@
             class="visually-hidden"\
             role="status"\
             aria-live="assertive">\
-          <p ng-if="$mdAutocompleteCtrl.index === -1 && $mdAutocompleteCtrl.matches.length === 1">There is 1 match available.</p>\
-          <p ng-if="$mdAutocompleteCtrl.index === -1 && $mdAutocompleteCtrl.matches.length > 1">There are {{$mdAutocompleteCtrl.matches.length}} matches available.</p>\
-          <p ng-if="$mdAutocompleteCtrl.index >= 0">{{ $mdAutocompleteCtrl.getCurrentDisplayValue() }}</p>\
+          <p ng-repeat="message in $mdAutocompleteCtrl.messages">{{message.display}}</p>\
         </aria-status>',
       transclude:   true,
       controller:   'MdAutocompleteCtrl',
@@ -90,7 +94,8 @@
         itemChange:   '&mdSelectedItemChange',
         textChange:   '&mdSearchTextChange',
         isDisabled:   '=ngDisabled',
-        minLength:    '=mdMinLength'
+        minLength:    '=mdMinLength',
+        delay:        '=mdDelay'
       }
     };
   }

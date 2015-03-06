@@ -4,7 +4,7 @@
       .module('material.components.autocomplete')
       .controller('MdAutocompleteCtrl', MdAutocompleteCtrl);
 
-  function MdAutocompleteCtrl ($scope, $element, $timeout, $q, $mdUtil, $mdConstant) {
+  function MdAutocompleteCtrl ($scope, $element, $q, $mdUtil, $mdConstant) {
 
     //-- private variables
     var self = this,
@@ -16,7 +16,8 @@
           input: $element[0].getElementsByTagName('input')[0]
         },
         promise = null,
-        cache = {};
+        cache = {},
+        noBlur = false;
 
     //-- public variables
     self.scope = $scope;
@@ -32,6 +33,13 @@
     self.select = select;
     self.getCurrentDisplayValue = getCurrentDisplayValue;
     self.fetch = $mdUtil.debounce(fetchResults);
+    self.messages = [];
+
+    //-- While the mouse is inside of the dropdown, we don't want to handle input blur
+    //-- This is to allow the user to scroll the list without causing it to hide
+    self.listEnter = function () { noBlur = true; };
+    self.listLeave = function () { noBlur = false; };
+    self.mouseUp   = function () { elements.input.focus(); };
 
     return init();
 
@@ -52,35 +60,44 @@
     function getItemScope (item) {
       if (!item) return;
       var locals = {};
-      if (self.itemName) locals[self.itemName] = $scope.selectedItem;
+      if (self.itemName) locals[self.itemName] = item;
       return locals;
     }
 
     function configureWatchers () {
-      $scope.$watch('searchText', function (searchText) {
-        self.index = -1;
-        if (!searchText || searchText.length < Math.max(parseInt($scope.minLength, 10), 1)) {
-          self.loading = false;
-          self.matches = [];
-          self.hidden = shouldHide();
-          return;
-        }
-        var term = searchText.toLowerCase();
-        if (promise && promise.cancel) {
-          promise.cancel();
-          promise = null;
-        }
-        if (!$scope.noCache && cache[term]) {
-          self.matches = cache[term];
-        } else {
-          self.fetch(searchText);
-        }
+      var wait = parseInt($scope.delay, 10) || 0;
+      $scope.$watch('searchText', wait
+          ? $mdUtil.debounce(handleSearchText, wait)
+          : handleSearchText);
+      $scope.$watch('selectedItem', function (selectedItem, previousSelectedItem) {
+        if ($scope.itemChange && selectedItem !== previousSelectedItem)
+          $scope.itemChange(getItemScope(selectedItem));
+      });
+    }
+
+    function handleSearchText (searchText, previousSearchText) {
+      self.index = -1;
+      if (!searchText || searchText.length < Math.max(parseInt($scope.minLength, 10), 1)) {
+        self.loading = false;
+        self.matches = [];
         self.hidden = shouldHide();
-        if ($scope.textChange) $scope.textChange(getItemScope($scope.selectedItem));
-      });
-      $scope.$watch('selectedItem', function (selectedItem) {
-        if ($scope.itemChange) $scope.itemChange(getItemScope(selectedItem));
-      });
+        updateMessages();
+        return;
+      }
+      var term = searchText.toLowerCase();
+      if (promise && promise.cancel) {
+        promise.cancel();
+        promise = null;
+      }
+      if (!$scope.noCache && cache[term]) {
+        self.matches = cache[term];
+        updateMessages();
+      } else {
+        self.fetch(searchText);
+      }
+      self.hidden = shouldHide();
+      if ($scope.textChange && searchText !== previousSearchText)
+        $scope.textChange(getItemScope($scope.selectedItem));
     }
 
     function fetchResults (searchText) {
@@ -99,11 +116,27 @@
         self.loading = false;
         self.matches = matches;
         self.hidden = shouldHide();
+        updateMessages();
       }
     }
 
+    function updateMessages () {
+      if (self.hidden) return;
+      switch (self.matches.length) {
+        case 0:  return self.messages.splice(0);
+        case 1:  return self.messages.push({ display: 'There is 1 match available.' });
+        default: return self.messages.push({ display: 'There are '
+            + self.matches.length
+            + ' matches available.' });
+      }
+    }
+
+    function updateSelectionMessage () {
+      self.messages.push({ display: getCurrentDisplayValue() });
+    }
+
     function blur () {
-      self.hidden = true;
+      if (!noBlur) self.hidden = true;
     }
 
     function keydown (event) {
@@ -113,12 +146,14 @@
             event.preventDefault();
             self.index = Math.min(self.index + 1, self.matches.length - 1);
             updateScroll();
+            updateSelectionMessage();
             break;
         case $mdConstant.KEY_CODE.UP_ARROW:
             if (self.loading) return;
             event.preventDefault();
             self.index = Math.max(0, self.index - 1);
             updateScroll();
+            updateSelectionMessage();
             break;
         case $mdConstant.KEY_CODE.ENTER:
             if (self.loading || self.index < 0) return;
