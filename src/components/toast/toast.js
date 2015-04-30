@@ -1,6 +1,3 @@
-(function() {
-'use strict';
-
 /**
  * @ngdoc module
  * @name material.components.toast
@@ -26,7 +23,7 @@ function MdToastDirective() {
  * @module material.components.toast
  *
  * @description
- * `$mdToast` is a service to build a toast nofication on any position
+ * `$mdToast` is a service to build a toast notification on any position
  * on the screen with an optional duration, and provides a simple promise API.
  *
  *
@@ -173,12 +170,12 @@ function MdToastProvider($$interimElementProvider) {
   var activeToastContent;
   var $mdToast = $$interimElementProvider('$mdToast')
     .setDefaults({
-      methods: ['position', 'hideDelay', 'capsule'],
+      methods: ['position', 'hideDelay', 'capsule' ],
       options: toastDefaultOptions
     })
     .addPreset('simple', {
       argOption: 'content',
-      methods: ['content', 'action', 'highlightAction', 'theme'],
+      methods: ['content', 'action', 'highlightAction', 'theme', 'parent'],
       options: /* @ngInject */ function($mdToast, $mdTheming) {
         var opts = {
           template: [
@@ -212,7 +209,7 @@ function MdToastProvider($$interimElementProvider) {
     return $mdToast;
 
   /* @ngInject */
-  function toastDefaultOptions($timeout, $animate, $mdToast) {
+  function toastDefaultOptions($timeout, $animate, $mdToast, $mdUtil) {
     return {
       onShow: onShow,
       onRemove: onRemove,
@@ -222,6 +219,8 @@ function MdToastProvider($$interimElementProvider) {
     };
 
     function onShow(scope, element, options) {
+      element = $mdUtil.extractElementByName(element, 'md-toast');
+
       // 'top left' -> 'md-top md-left'
       activeToastContent = options.content;
       element.addClass(options.position.split(' ').map(function(pos) {
@@ -251,5 +250,3 @@ function MdToastProvider($$interimElementProvider) {
   }
 
 }
-
-})();
