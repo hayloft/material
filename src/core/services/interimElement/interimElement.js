@@ -373,7 +373,9 @@ function InterimElementProvider() {
                 options.parent = angular.element(el);
               }
 
-              element.css('z-index', options.zIndex);
+              if (options.allowStacking) {
+                element.css('z-index', options.zIndex);
+              }
               if (options.themable) $mdTheming(element);
               var ret = options.onShow(options.scope, element, options);
               return $q.when(ret)
