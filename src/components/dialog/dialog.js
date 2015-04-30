@@ -388,6 +388,7 @@ function MdDialogProvider($$interimElementProvider) {
       escapeToClose: true,
       targetEvent: null,
       disableParentScroll: true,
+      allowStacking: true,
       transformTemplate: function(template) {
         return '<div class="md-dialog-container">' + template + '</div>';
       }
