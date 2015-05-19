@@ -86,6 +86,8 @@ function mdListItemDirective($mdAria, $mdConstant, $timeout) {
         }
         if (hasProxiedElement) {
           wrapIn('div');
+        } else if (tEl.hasClass('md-with-secondary')) {
+          wrapIn('div');
         } else {
           tEl.addClass('md-no-proxy');
         }
