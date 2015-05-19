@@ -16,6 +16,16 @@ md-icon {
   &[md-font-icon] {
     line-height: 1;
   }
+
+  // font awesome
+  &[md-value] {
+    line-height: $icon-size;
+  }
+
+  .fa {
+    line-height: $icon-size;
+    font-size: 21px;
+  }
 }
 
 //

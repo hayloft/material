@@ -43,6 +43,7 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria ) {
   return {
     scope: {
       fontIcon: '@mdFontIcon',
+      value: '@mdValue',
       svgIcon: '@mdSvgIcon',
       svgSrc: '@mdSvgSrc'
     },
@@ -52,6 +53,9 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria ) {
   };
 
   function getTemplate(element, attr) {
+      if (attr.mdValue) {
+          return '<span class="md-font fa" ng-class="\'fa-\' + value"></span>';
+      }
     return attr.mdFontIcon ? '<span class="md-font" ng-class="fontIcon"></span>' : '';
   }
 
