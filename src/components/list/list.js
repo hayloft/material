@@ -71,7 +71,7 @@ function mdListItemDirective($mdAria, $mdConstant, $timeout) {
     controller: 'MdListController',
     compile: function(tEl, tAttrs) {
       // Check for proxy controls (no ng-click on parent, and a control inside)
-      var secondaryItem = tEl[0].querySelector('.md-secondary');
+      var secondaryItems = tEl[0].querySelectorAll('.md-secondary');
       var hasProxiedElement;
       var proxyElement;
 
@@ -127,26 +127,36 @@ function mdListItemDirective($mdAria, $mdConstant, $timeout) {
         tEl[0].setAttribute('tabindex', '-1');
         tEl.append(container);
 
-        if (secondaryItem && secondaryItem.hasAttribute('ng-click')) {
-          $mdAria.expect(secondaryItem, 'aria-label');
-          var buttonWrapper = angular.element('<md-button class="md-secondary-container md-icon-button">');
-          buttonWrapper.attr('ng-click', secondaryItem.getAttribute('ng-click'));
-          secondaryItem.removeAttribute('ng-click');
-          secondaryItem.setAttribute('tabindex', '-1');
-          secondaryItem.classList.remove('md-secondary');
-          buttonWrapper.append(secondaryItem);
-          secondaryItem = buttonWrapper[0];
-        }
+          if (secondaryItems.length) {
+              var secondaryContainer = angular.element('<div class="md-secondary-outer-container">');
 
-        // Check for a secondary item and move it outside
-        if ( secondaryItem && (
-          secondaryItem.hasAttribute('ng-click') ||
-            ( tAttrs.ngClick &&
-             isProxiedElement(secondaryItem) )
-        )) {
-          tEl.addClass('md-with-secondary');
-          tEl.append(secondaryItem);
-        }
+              for (var i = 0; i < secondaryItems.length; i++) {
+                  var secondaryItem = secondaryItems[i];
+
+                  if (secondaryItem && secondaryItem.hasAttribute('ng-click')) {
+                      $mdAria.expect(secondaryItem, 'aria-label');
+                      var buttonWrapper = angular.element('<md-button class="md-secondary-container md-icon-button">');
+                      buttonWrapper.attr('ng-click', secondaryItem.getAttribute('ng-click'));
+                      secondaryItem.removeAttribute('ng-click');
+                      secondaryItem.setAttribute('tabindex', '-1');
+                      secondaryItem.classList.remove('md-secondary');
+                      buttonWrapper.append(secondaryItem);
+                      secondaryItem = buttonWrapper[0];
+                  }
+
+                  // Check for a secondary item and move it outside
+                  if (secondaryItem && (
+                      secondaryItem.hasAttribute('ng-click') ||
+                      ( tAttrs.ngClick &&
+                      isProxiedElement(secondaryItem) )
+                      )) {
+                      secondaryContainer.append(secondaryItem);
+                  }
+              }
+
+              tEl.addClass('md-with-secondary');
+              tEl.append(secondaryContainer);
+          }
       }
 
       function isProxiedElement(el) {

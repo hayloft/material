@@ -138,11 +138,14 @@ md-list-item, md-list-item .md-list-item-inner {
 
   .md-secondary-container,
   .md-secondary {
+    transform: translate3d(0, -50%, 0);
+  }
+
+  .md-secondary-outer-container {
     margin-left: $list-item-secondary-left-margin;
     position: absolute;
     right: $list-item-padding-horizontal;
     top: 50%;
-    transform: translate3d(0, -50%, 0);
   }
 
   & > .md-button.md-secondary-container > .md-secondary {
