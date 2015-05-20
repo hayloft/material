@@ -612,7 +612,13 @@ function MdDialogProvider($$interimElementProvider) {
     function dialogPopIn(container, parentElement, clickElement) {
       var dialogEl = container.find('md-dialog');
 
-      parentElement.append(container);
+      var existingDialogs = parentElement.find('> .md-dialog-container');
+      if (existingDialogs.length) {
+        existingDialogs.first().before(container);
+      } else {
+          parentElement.append(container);
+      }
+
       transformToClickElement(dialogEl, clickElement);
 
       $$rAF(function() {
