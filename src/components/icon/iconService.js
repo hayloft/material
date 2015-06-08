@@ -12,17 +12,21 @@
     * icons and icon sets to be pre-registered and associated with source URLs **before** the `<md-icon />`
     * directives are compiled.
     *
-    * Loading of the actual svg files are deferred to on-demand requests and are loaded
+    * If using font-icons, the developer is repsonsible for loading the fonts.
+    *
+    * If using SVGs, loading of the actual svg files are deferred to on-demand requests and are loaded
     * internally by the `$mdIcon` service using the `$http` service. When an SVG is requested by name/ID,
     * the `$mdIcon` service searches its registry for the associated source URL;
     * that URL is used to on-demand load and parse the SVG dynamically.
     *
+    * @usage
     * <hljs lang="js">
     *   app.config(function($mdIconProvider) {
     *
     *     // Configure URLs for icons specified by [set:]id.
     *
     *     $mdIconProvider
+    *          .defaultFontSet( 'fontawesome' )
     *          .defaultIconSet('my/app/icons.svg')       // Register a default set of SVG icons
     *          .iconSet('social', 'my/app/social.svg')   // Register a named icon set of SVGs
     *          .icon('android', 'my/app/android.svg')    // Register a specific icon (by name)
@@ -95,7 +99,7 @@
     * @description
     * Register a source URL for a 'named' set of icons; group of SVG definitions where each definition
     * has an icon id. Individual icons can be subsequently retrieved from this cached set using
-    * `$mdIcon( <icon set name>:<icon name> )`
+    * `$mdIcon(<icon set name>:<icon name>)`
     *
     * @param {string} id Icon name/id used to register the iconset
     * @param {string} url specifies the external location for the data file. Used internally by `$http` to load the
@@ -125,7 +129,7 @@
     * @description
     * Register a source URL for the default 'named' set of icons. Unless explicitly registered,
     * subsequent lookups of icons will failover to search this 'default' icon set.
-    * Icon can be retrieved from this cached, default set using `$mdIcon( <icon name> )`
+    * Icon can be retrieved from this cached, default set using `$mdIcon(<name>)`
     *
     * @param {string} url specifies the external location for the data file. Used internally by `$http` to load the
     * data or as part of the lookup in `$templateCache` if pre-loading was configured.
@@ -146,6 +150,38 @@
     * </hljs>
     *
     */
+  /**
+   * @ngdoc method
+   * @name $mdIconProvider#defaultFontSet
+   *
+   * @description
+   * When using Font-Icons, Angular Material assumes the the Material Design icons will be used and automatically
+   * configures the default font-set == 'material-icons'. Note that the font-set references the font-icon library
+   * class style that should be applied to the `<md-icon>`.
+   *
+   * Configuring the default means that the attributes
+   * `md-font-set="material-icons"` or `class="material-icons"` do not need to be explicitly declared on the
+   * `<md-icon>` markup. For example:
+   *
+   *  `<md-icon> face </md-icon>`
+   *  will render as
+   *  `<span class="material-icons"> face </span>`, and
+   *
+   *  `<md-icon md-font-set="fa"> face </md-icon>`
+   *  will render as
+   *  `<span class="fa"> face </span>`
+   *
+   * @param {string} name of the font-library style that should be applied to the md-icon DOM element
+   *
+   * @usage
+   * <hljs lang="js">
+   *   app.config(function($mdIconProvider) {
+   *     $mdIconProvider.defaultFontSet( 'fontawesome' );
+   *   });
+   * </hljs>
+   *
+   */
+
    /**
     * @ngdoc method
     * @name $mdIconProvider#defaultIconSize
@@ -174,24 +210,25 @@
     */
 
  var config = {
-   defaultIconSize: 24
+   defaultIconSize: 24,
+   defaultFontSet: 'material-icons',
+   fontSets : [ ]
  };
 
  function MdIconProvider() { }
 
  MdIconProvider.prototype = {
+
    icon : function icon(id, url, iconSize) {
      if ( id.indexOf(':') == -1 ) id = '$default:' + id;
 
      config[id] = new ConfigurationItem(url, iconSize );
      return this;
    },
-
    iconSet : function iconSet(id, url, iconSize) {
      config[id] = new ConfigurationItem(url, iconSize );
      return this;
    },
-
    defaultIconSet : function defaultIconSet(url, iconSize) {
      var setName = '$default';
 
@@ -200,8 +237,27 @@
      }
 
      config[setName].iconSize = iconSize || config.defaultIconSize;
-
      return this;
+   },
+
+   /**
+    * Register an alias name associated with a font-icon library style ;
+    */
+   fontSet : function fontSet(alias, className) {
+    config.fontSets.push({
+      alias : alias,
+      fontSet : className || alias
+    });
+   },
+
+   /**
+    * Specify a default style name associated with a font-icon library
+    * fallback to Material Icons.
+    *
+    */
+   defaultFontSet : function defaultFontSet(className) {
+    config.defaultFontSet = !className ? '' : className;
+    return this;
    },
 
    defaultIconSize : function defaultIconSize(iconSize) {
@@ -213,28 +269,28 @@
      var iconProvider = this;
      var svgRegistry = [
        {
-         id : 'tabs-arrow',
-         url: 'tabs-arrow.svg',
+         id : 'md-tabs-arrow',
+         url: 'md-tabs-arrow.svg',
          svg: '<svg version="1.1" x="0px" y="0px" viewBox="0 0 24 24"><g><polygon points="15.4,7.4 14,6 8,12 14,18 15.4,16.6 10.8,12 "/></g></svg>'
        },
        {
-         id : 'close',
-         url: 'close.svg',
+         id : 'md-close',
+         url: 'md-close.svg',
          svg: '<svg version="1.1" x="0px" y="0px" viewBox="0 0 24 24"><g><path d="M19 6.41l-1.41-1.41-5.59 5.59-5.59-5.59-1.41 1.41 5.59 5.59-5.59 5.59 1.41 1.41 5.59-5.59 5.59 5.59 1.41-1.41-5.59-5.59z"/></g></svg>'
        },
        {
-         id:  'cancel',
-         url: 'cancel.svg',
+         id:  'md-cancel',
+         url: 'md-cancel.svg',
          svg: '<svg version="1.1" x="0px" y="0px" viewBox="0 0 24 24"><g><path d="M12 2c-5.53 0-10 4.47-10 10s4.47 10 10 10 10-4.47 10-10-4.47-10-10-10zm5 13.59l-1.41 1.41-3.59-3.59-3.59 3.59-1.41-1.41 3.59-3.59-3.59-3.59 1.41-1.41 3.59 3.59 3.59-3.59 1.41 1.41-3.59 3.59 3.59 3.59z"/></g></svg>'
        },
        {
-         id:  'menu',
-         url: 'menu.svg',
+         id:  'md-menu',
+         url: 'md-menu.svg',
          svg: '<svg version="1.1" x="0px" y="0px" viewBox="0 0 100 100"><path d="M 50 0 L 100 14 L 92 80 L 50 100 L 8 80 L 0 14 Z" fill="#b2b2b2"></path><path d="M 50 5 L 6 18 L 13.5 77 L 50 94 Z" fill="#E42939"></path><path d="M 50 5 L 94 18 L 86.5 77 L 50 94 Z" fill="#B72833"></path><path d="M 50 7 L 83 75 L 72 75 L 65 59 L 50 59 L 50 50 L 61 50 L 50 26 Z" fill="#b2b2b2"></path><path d="M 50 7 L 17 75 L 28 75 L 35 59 L 50 59 L 50 50 L 39 50 L 50 26 Z" fill="#fff"></path></svg>'
        },
        {
-         id:  'toggle-arrow',
-         url: 'toggle-arrow-svg',
+         id:  'md-toggle-arrow',
+         url: 'md-toggle-arrow-svg',
          svg: '<svg version="1.1" x="0px" y="0px" viewBox="0 0 48 48"><path d="M24 16l-12 12 2.83 2.83 9.17-9.17 9.17 9.17 2.83-2.83z"/><path d="M0 0h48v48h-48z" fill="none"/></svg>'
        }
      ];
@@ -248,7 +304,7 @@
 
    $get : ['$http', '$q', '$log', '$templateCache', function($http, $q, $log, $templateCache) {
      this.preloadIcons($templateCache);
-     return new MdIconService(config, $http, $q, $log, $templateCache);
+     return MdIconService(config, $http, $q, $log, $templateCache);
    }]
  };
 
@@ -298,7 +354,7 @@
   * };
   * </hljs>
   *
-  * NOTE: The `md-icon` directive internally uses the `$mdIcon` service to query, loaded, and instantiate
+  * NOTE: The `<md-icon />  ` directive internally uses the `$mdIcon` service to query, loaded, and instantiate
   * SVG DOM elements.
   */
  function MdIconService(config, $http, $q, $log, $templateCache) {
@@ -306,8 +362,15 @@
    var urlRegex = /[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?/i;
 
    Icon.prototype = { clone : cloneSVG, prepare: prepareAndStyle };
+   getIcon.fontSet = findRegisteredFontSet;
 
-   return function getIcon(id) {
+   // Publish service...
+   return getIcon;
+
+   /**
+    * Actual $mdIcon service is essentially a lookup function
+    */
+   function getIcon(id) {
      id = id || '';
 
      // If already loaded and cached, use a clone of the cached icon.
@@ -322,7 +385,23 @@
          .catch(announceIdNotFound)
          .catch(announceNotFound)
          .then( cacheIcon(id) );
-   };
+   }
+
+   /**
+    * Lookup registered fontSet style using its alias...
+    * If not found,
+    */
+   function findRegisteredFontSet(alias) {
+      var useDefault = angular.isUndefined(alias) || !(alias && alias.length);
+      if ( useDefault ) return config.defaultFontSet;
+
+      var result = alias;
+      angular.forEach(config.fontSets, function(it){
+        if ( it.alias == alias ) result = it.fontSet || result;
+      });
+
+      return result;
+   }
 
    /**
     * Prepare and cache the loaded icon for the specified `id`

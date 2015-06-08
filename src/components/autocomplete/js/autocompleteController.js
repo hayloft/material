@@ -18,7 +18,8 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
       cache     = {},
       noBlur    = false,
       selectedItemWatchers = [],
-      hasFocus  = false;
+      hasFocus  = false,
+      lastCount = 0;
 
   //-- public variables
 
@@ -122,6 +123,11 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
       if (!hidden && oldHidden) positionDropdown();
     });
     angular.element($window).on('resize', positionDropdown);
+    $scope.$on('$destroy', cleanup);
+  }
+
+  function cleanup () {
+    elements.$.ul.remove();
   }
 
   function gatherElements () {
@@ -132,6 +138,7 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
       wrap:  $element.find('md-autocomplete-wrap')[0],
       root:  document.body
     };
+    elements.li = elements.ul.getElementsByTagName('li');
     elements.snap = getSnapTarget();
     elements.$ = getAngularElements(elements);
   }
@@ -190,8 +197,8 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
 
   function handleSearchText (searchText, previousSearchText) {
     self.index = getDefaultIndex();
-    //-- do nothing on init if there is no initial value
-    if (!searchText && searchText === previousSearchText) return;
+    //-- do nothing on init
+    if (searchText === previousSearchText) return;
     //-- clear selected item if search text no longer matches it
     if (searchText !== getDisplayValue($scope.selectedItem)) $scope.selectedItem = null;
     else return;
@@ -230,14 +237,14 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
         event.preventDefault();
         self.index = Math.min(self.index + 1, self.matches.length - 1);
         updateScroll();
-        updateSelectionMessage();
+        updateMessages();
         break;
       case $mdConstant.KEY_CODE.UP_ARROW:
         if (self.loading) return;
         event.preventDefault();
         self.index = self.index < 0 ? self.matches.length - 1 : Math.max(0, self.index - 1);
         updateScroll();
-        updateSelectionMessage();
+        updateMessages();
         break;
       case $mdConstant.KEY_CODE.TAB:
       case $mdConstant.KEY_CODE.ENTER:
@@ -284,17 +291,21 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
   }
 
   function isMinLengthMet () {
-    return $scope.searchText.length >= getMinLength();
+    return $scope.searchText && $scope.searchText.length >= getMinLength();
   }
 
   //-- actions
 
   function select (index) {
     $scope.selectedItem = self.matches[index];
-    $scope.searchText = getDisplayValue($scope.selectedItem) || $scope.searchText;
     self.hidden = true;
     self.index = 0;
     self.matches = [];
+    //-- force form to update state for validation
+    $timeout(function () {
+      elements.$.input.controller('ngModel').$setViewValue(getDisplayValue($scope.selectedItem) || $scope.searchText);
+      self.hidden = true;
+    });
   }
 
   function clearValue () {
@@ -323,8 +334,8 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
     function handleResults (matches) {
       cache[term] = matches;
       if (searchText !== $scope.searchText) return; //-- just cache the results if old request
-      promise = null;
       self.loading = false;
+      promise = null;
       self.matches = matches;
       self.hidden = shouldHide();
       updateMessages();
@@ -333,23 +344,24 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
   }
 
   function updateMessages () {
-    if (self.hidden) return;
+    self.messages = [ getCountMessage(), getCurrentDisplayValue() ];
+  }
+
+  function getCountMessage () {
+    if (lastCount === self.matches.length) return '';
+    lastCount = self.matches.length;
     switch (self.matches.length) {
-      case 0:  return self.messages.splice(0);
-      case 1:  return self.messages.push({ display: 'There is 1 match available.' });
-      default: return self.messages.push({ display: 'There are '
-          + self.matches.length
-          + ' matches available.' });
+      case 0:  return 'There are no matches available.';
+      case 1:  return 'There is 1 match available.';
+      default: return 'There are ' + self.matches.length + ' matches available.';
     }
   }
 
-  function updateSelectionMessage () {
-    self.messages.push({ display: getCurrentDisplayValue() });
-  }
-
   function updateScroll () {
-    var top = ITEM_HEIGHT * self.index,
-        bot = top + ITEM_HEIGHT,
+    if (!elements.li[self.index]) return;
+    var li  = elements.li[self.index],
+        top = li.offsetTop,
+        bot = top + li.offsetHeight,
         hgt = elements.ul.clientHeight;
     if (top < elements.ul.scrollTop) {
       elements.ul.scrollTop = top;
@@ -373,7 +385,7 @@ function MdAutocompleteCtrl ($scope, $element, $mdUtil, $mdConstant, $timeout, $
     } else {
       fetchResults(searchText);
     }
-    self.hidden = shouldHide();
+    if (hasFocus) self.hidden = shouldHide();
   }
 
 }

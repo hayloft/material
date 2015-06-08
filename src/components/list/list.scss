@@ -36,13 +36,15 @@ md-list {
 }
 
 md-list-item {
+  &.md-proxy-focus.md-focused .md-no-style {
+    transition: background-color 0.15s linear;
+  }
   &.md-no-proxy,
   .md-no-style {
     position: relative;
     padding: $list-item-padding-vertical $list-item-padding-horizontal;
     flex: 1;
-    transition: background-color 0.15s linear;
-
+    
     &.md-button {
       font-size: inherit;
       height: inherit;
@@ -87,7 +89,7 @@ md-list-item, md-list-item .md-list-item-inner {
   & > md-icon:first-child, 
   > md-icon.md-secondary {
     width: $list-item-primary-icon-width;
-    margin-top: 12px;
+    margin-top: 16px;
     margin-bottom: 12px;
     box-sizing: content-box;
   }
@@ -200,7 +202,7 @@ md-list-item.md-2-line > .md-no-style {
     margin-top: $baseline-grid * 1.5;
   }
   > md-icon:first-child {
-    align-self: center;
+    align-self: flex-start;
   }
   .md-list-item-text {
     flex: 1;
