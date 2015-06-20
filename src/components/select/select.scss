@@ -27,7 +27,7 @@ $select-max-visible-options: 5;
   &.md-active {
     opacity: 1;
     md-select-menu {
-      transition: transform $swift-ease-out;
+      transition: $swift-ease-out;
       transition-duration: 200ms;
       > * {
         opacity: 1;
@@ -66,13 +66,15 @@ md-select {
     }
     &.ng-invalid.ng-dirty {
       .md-select-label {
-        border-bottom: 2px solid;
+        border-bottom-width: 2px;
+        border-bottom-style: solid;
         padding-bottom: 0;
       }
     }
     &:focus {
       .md-select-label {
-        border-bottom: 2px solid;
+        border-bottom-width: 2px;
+        border-bottom-style: solid;
         padding-bottom: 0;
       }
     }
@@ -84,7 +86,8 @@ md-select {
   display: flex;
   align-items: center;
   padding: 2px 2px 1px;
-  border-bottom: 1px solid;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
   position: relative;
   box-sizing: content-box;
   min-width: 8 * $baseline-grid;

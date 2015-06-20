@@ -41,6 +41,7 @@ angular.module('material.components.select', [
  * @description Displays a select box, bound to an ng-model.
  *
  * @param {expression} ng-model The model!
+ * @param {expression=} md-on-close expression to be evaluated when the select is closed
  * @param {boolean=} multiple Whether it's multiple.
  * @param {string=} placeholder Placeholder hint text.
  * @param {string=} aria-label Optional label for accessibility. Only necessary if no placeholder or
@@ -155,7 +156,7 @@ function SelectDirective($mdSelect, $mdUtil, $mdTheming, $mdAria, $interpolate, 
       $mdTheming(element);
 
       if (attr.name && formCtrl) {
-        var selectEl = element.parent()[0].querySelector('select[name=".' + attr.name + '"]')
+        var selectEl = element.parent()[0].querySelector('select[name=".' + attr.name + '"]');
         formCtrl.$removeControl(angular.element(selectEl).controller());
       }
 
@@ -175,6 +176,10 @@ function SelectDirective($mdSelect, $mdUtil, $mdTheming, $mdAria, $interpolate, 
 
       mdSelectCtrl.setIsPlaceholder = function(val) {
         val ? labelEl.addClass('md-placeholder') : labelEl.removeClass('md-placeholder');
+      };
+
+      mdSelectCtrl.triggerClose = function() {
+        $parse(attr.mdOnClose)(scope);
       };
 
       scope.$$postDigest(function() {
@@ -240,6 +245,7 @@ function SelectDirective($mdSelect, $mdUtil, $mdTheming, $mdAria, $interpolate, 
           element.on('keydown', handleKeypress);
         }
       });
+
       if (!attr.disabled && !attr.ngDisabled) {
         element.attr({'tabindex': attr.tabindex, 'aria-disabled': 'false'});
         element.on('click', openSelect);
@@ -476,7 +482,7 @@ function SelectMenuDirective($parse, $mdUtil, $mdTheming) {
     };
 
     self.selectedLabels = function() {
-      var selectedOptionEls = nodesToArray($element[0].querySelectorAll('md-option[selected]'));
+      var selectedOptionEls = $mdUtil.nodesToArray($element[0].querySelectorAll('md-option[selected]'));
       if (selectedOptionEls.length) {
         return selectedOptionEls.map(function(el) { return el.textContent; }).join(', ');
       } else {
@@ -735,7 +741,7 @@ function SelectProvider($$interimElementProvider) {
       }
 
       if (opts.disableParentScroll && !$mdUtil.getClosest(opts.target, 'MD-DIALOG')) {
-        opts.restoreScroll = $mdUtil.disableScrollAround(opts.target);
+        opts.restoreScroll = $mdUtil.disableScrollAround(opts.element);
       } else {
         opts.disableParentScroll = false;
       }
@@ -813,7 +819,7 @@ function SelectProvider($$interimElementProvider) {
 
 
         function focusOption(direction) {
-          var optionsArray = nodesToArray(optionNodes);
+          var optionsArray = $mdUtil.nodesToArray(optionNodes);
           var index = optionsArray.indexOf(opts.focusedNode);
           if (index === -1) {
             // We lost the previously focused element, reset to first option
@@ -878,6 +884,7 @@ function SelectProvider($$interimElementProvider) {
           opts.restoreScroll();
         }
         if (opts.restoreFocus) opts.target.focus();
+        mdSelect && mdSelect.triggerClose();
       });
     }
 
@@ -1028,11 +1035,3 @@ function SelectProvider($$interimElementProvider) {
   }
 }
 
-// Annoying method to copy nodes to an array, thanks to IE
-function nodesToArray(nodes) {
-  var results = [];
-  for (var i = 0; i < nodes.length; ++i) {
-    results.push(nodes.item(i));
-  }
-  return results;
-}
