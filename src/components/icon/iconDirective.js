@@ -138,7 +138,7 @@ angular.module('material.components.icon', [
  * </hljs>
  *
  */
-function mdIconDirective($mdIcon, $mdTheming, $mdAria, $interpolate ) {
+function mdIconDirective($mdIcon, $mdTheming, $mdAria, $interpolate, $compile ) {
 
   return {
     scope: {
@@ -159,6 +159,12 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $interpolate ) {
    */
   function postLink(scope, element, attr) {
     $mdTheming(element);
+
+    if (attr.mdValue) {
+      var icon = angular.element('<span class="fa" ng-class="\'fa-\' + value"></span>');
+      $compile(icon)(scope);
+      element.html(icon);
+    }
 
     prepareForFontIcon();
 
