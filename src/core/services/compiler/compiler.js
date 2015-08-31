@@ -1,4 +1,5 @@
-angular.module('material.core')
+angular
+  .module('material.core')
   .service('$mdCompiler', mdCompilerService);
 
 function mdCompilerService($q, $http, $injector, $compile, $controller, $templateCache) {
@@ -68,8 +69,8 @@ function mdCompilerService($q, $http, $injector, $compile, $controller, $templat
     var template = options.template || '';
     var controller = options.controller;
     var controllerAs = options.controllerAs;
-    var resolve = options.resolve || {};
-    var locals = options.locals || {};
+    var resolve = angular.extend({}, options.resolve || {});
+    var locals = angular.extend({}, options.locals || {});
     var transformTemplate = options.transformTemplate || angular.identity;
     var bindToController = options.bindToController;
 

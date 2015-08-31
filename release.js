@@ -8,7 +8,7 @@
   var child_process  = require('child_process');
   var pkg            = require('./package.json');
   var oldVersion     = pkg.version;
-  var abortCmds      = [ 'git checkout master', 'rm abort push' ];
+  var abortCmds      = [ 'git reset --hard', 'git checkout master', 'rm abort push' ];
   var pushCmds       = [ 'rm abort push'];
   var cleanupCmds    = [];
   var defaultOptions = { encoding: 'utf-8' };
@@ -184,6 +184,7 @@
 
   function cloneRepo (repo) {
     start('Cloning ' + repo.cyan + ' from Github...');
+    exec('rm -rf ' + repo);
     exec('git clone https://github.com/angular/' + repo + '.git --depth=1');
     done();
     cleanupCmds.push('rm -rf ' + repo);
@@ -260,8 +261,9 @@
     exec([
       'rm -rf dist',
       'gulp docs',
-      'sed -i \'\' \'s,http:\\/\\/localhost:8080\\/angular-material,http:\\/\\/cdn.rawgit.com/angular/bower-material/v{{newVersion}}/angular-material,g\' dist/docs/docs.js'
+      'sed -i \'\' \'s,http:\\/\\/localhost:8080\\/angular-material,https:\\/\\/gitcdn.xyz/repo/angular/bower-material/v{{newVersion}}/angular-material,g\' dist/docs/docs.js'
     ]);
+
     //-- copy files over to site repo
     exec([
       'rm -rf ./*-rc*',

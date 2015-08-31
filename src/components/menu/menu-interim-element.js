@@ -21,7 +21,9 @@ function MenuProvider($$interimElementProvider) {
     });
 
   /* @ngInject */
-  function menuDefaultOptions($$rAF, $window, $mdUtil, $mdTheming, $timeout, $mdConstant, $document) {
+  function menuDefaultOptions($$rAF, $window, $mdUtil, $mdTheming, $mdConstant, $document) {
+    var animator = $mdUtil.dom.animator;
+
     return {
       parent: 'body',
       onShow: onShow,
@@ -29,6 +31,7 @@ function MenuProvider($$interimElementProvider) {
       hasBackdrop: true,
       disableParentScroll: true,
       skipCompile: true,
+      preserveScope: true,
       themable: true
     };
 
@@ -53,10 +56,6 @@ function MenuProvider($$interimElementProvider) {
         opts.restoreScroll = $mdUtil.disableScrollAround(opts.element);
       }
 
-      // Only activate click listeners after a short time to stop accidental double taps/clicks
-      // from clicking the wrong item
-      $timeout(activateInteraction, 75, false);
-
       if (opts.backdrop) {
         $mdTheming.inherit(opts.backdrop, opts.parent);
         opts.parent.append(opts.backdrop);
@@ -64,7 +63,12 @@ function MenuProvider($$interimElementProvider) {
       showMenu();
 
       // Return the promise for when our menu is done animating in
-      return $mdUtil.transitionEndPromise(element, {timeout: 350});
+      return animator
+          .waitTransitionEnd(element, {timeout: 370})
+          .finally( function(response) {
+            opts.cleanupInteraction = activateInteraction();
+            return response;
+          });
 
       /** Check for valid opts and set some sane defaults */
       function buildOpts() {
@@ -79,7 +83,7 @@ function MenuProvider($$interimElementProvider) {
           target: angular.element(opts.target), //make sure it's not a naked dom node
           parent: angular.element(opts.parent),
           menuContentEl: angular.element(element[0].querySelector('md-menu-content')),
-          backdrop: opts.hasBackdrop && angular.element('<md-backdrop class="md-menu-backdrop md-click-catcher">')
+          backdrop: opts.hasBackdrop && $mdUtil.createBackdrop(scope, "md-menu-backdrop md-click-catcher")
         });
       }
 
@@ -127,7 +131,9 @@ function MenuProvider($$interimElementProvider) {
         opts.backdrop && opts.backdrop.on('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          opts.mdMenuCtrl.close(true);
+          scope.$apply(function() {
+            opts.mdMenuCtrl.close(true);
+          });
         });
 
         // Wire up keyboard listeners.
@@ -143,30 +149,52 @@ function MenuProvider($$interimElementProvider) {
         });
 
         // Close menu on menu item click, if said menu-item is not disabled
-        opts.menuContentEl.on('click', function(e) {
+        var captureClickListener = function(e) {
           var target = e.target;
           // Traverse up the event until we get to the menuContentEl to see if
           // there is an ng-click and that the ng-click is not disabled
           do {
-            if (target && target.hasAttribute('ng-click')) {
+            if (target == opts.menuContentEl[0]) return;
+            if (hasAnyAttribute(target, ['ng-click', 'ng-href', 'ui-sref'])) {
               if (!target.hasAttribute('disabled')) {
                 close();
               }
               break;
             }
-          } while ((target = target.parentNode) && target != opts.menuContentEl)
+          } while (target = target.parentNode)
 
           function close() {
             scope.$apply(function() {
               opts.mdMenuCtrl.close();
             });
           }
-        });
+
+          function hasAnyAttribute(target, attrs) {
+            if (!target) return false;
+            for (var i = 0, attr; attr = attrs[i]; ++i) {
+              var altForms = [attr, 'data-' + attr, 'x-' + attr];
+              for (var j = 0, rawAttr; rawAttr = altForms[j]; ++j) {
+                if (target.hasAttribute(rawAttr)) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          }
+        };
+        opts.menuContentEl[0].addEventListener('click', captureClickListener, true);
 
         // kick off initial focus in the menu on the first element
         var focusTarget = opts.menuContentEl[0].querySelector('[md-menu-focus-target]');
         if (!focusTarget) focusTarget = opts.menuContentEl[0].firstElementChild.firstElementChild;
         focusTarget.focus();
+
+        return function cleanupInteraction() {
+          element.removeClass('md-clickable');
+          opts.backdrop.off('click');
+          opts.menuContentEl.off('keydown');
+          opts.menuContentEl[0].removeEventListener('click', captureClickListener, true);
+        };
       }
     }
 
@@ -219,8 +247,9 @@ function MenuProvider($$interimElementProvider) {
      */
     function onRemove(scope, element, opts) {
       opts.isRemoved = true;
-      element.addClass('md-leave')
-        .removeClass('md-clickable');
+      element.addClass('md-leave');
+
+      opts.cleanupInteraction();
 
       // Disable resizing handlers
       angular.element($window).off('resize', opts.resizeFn);
@@ -228,14 +257,17 @@ function MenuProvider($$interimElementProvider) {
       opts.resizeFn = undefined;
 
       // Wait for animate out, then remove from the DOM
-      return $mdUtil.transitionEndPromise(element, { timeout: 350 }).then(function() {
-        element.removeClass('md-active');
-        opts.backdrop && opts.backdrop.remove();
-        if (element[0].parentNode === opts.parent[0]) {
-          opts.parent[0].removeChild(element[0]);
-        }
-        opts.restoreScroll && opts.restoreScroll();
-      });
+      return animator
+        .waitTransitionEnd(element, { timeout: 370 })
+        .finally(function() {
+          element.removeClass('md-active');
+
+          opts.backdrop && opts.backdrop.remove();
+          if (element[0].parentNode === opts.parent[0]) {
+            opts.parent[0].removeChild(element[0]);
+          }
+          opts.restoreScroll && opts.restoreScroll();
+        });
     }
 
     /**
@@ -258,8 +290,8 @@ function MenuProvider($$interimElementProvider) {
 
       var bounds = {
         left: boundryNodeRect.left + MENU_EDGE_MARGIN,
-        top: boundryNodeRect.top + MENU_EDGE_MARGIN,
-        bottom: boundryNodeRect.bottom - MENU_EDGE_MARGIN,
+        top: Math.max(boundryNodeRect.top, 0) + MENU_EDGE_MARGIN,
+        bottom: Math.max(boundryNodeRect.bottom, Math.max(boundryNodeRect.top, 0) + boundryNodeRect.height) - MENU_EDGE_MARGIN,
         right: boundryNodeRect.right - MENU_EDGE_MARGIN
       };
 
@@ -269,7 +301,12 @@ function MenuProvider($$interimElementProvider) {
 
       if (positionMode.top == 'target' || positionMode.left == 'target' || positionMode.left == 'target-right') {
         // TODO: Allow centering on an arbitrary node, for now center on first menu-item's child
-        alignTarget = openMenuNode.firstElementChild.firstElementChild || openMenuNode.firstElementChild;
+        alignTarget = firstVisibleChild();
+        if (!alignTarget) {
+          throw Error('Error positioning menu. No visible children.');
+        }
+
+        alignTarget = alignTarget.firstElementChild || alignTarget;
         alignTarget = alignTarget.querySelector('[md-menu-align-target]') || alignTarget;
         alignTargetRect = alignTarget.getBoundingClientRect();
 
@@ -347,6 +384,18 @@ function MenuProvider($$interimElementProvider) {
       function clamp(pos) {
         pos.top = Math.max(Math.min(pos.top, bounds.bottom - containerNode.offsetHeight), bounds.top);
         pos.left = Math.max(Math.min(pos.left, bounds.right - containerNode.offsetWidth), bounds.left);
+      }
+
+      /**
+        * Gets the first visible child in the openMenuNode
+        * Necessary incase menu nodes are being dynamically hidden
+        */
+      function firstVisibleChild() {
+        for (var i = 0; i < openMenuNode.children.length; ++i) {
+          if (window.getComputedStyle(openMenuNode.children[i]).display != 'none') {
+            return openMenuNode.children[i];
+          }
+        }
       }
     }
   }

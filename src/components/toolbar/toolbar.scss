@@ -64,7 +64,7 @@ md-toolbar {
 }
 
 .md-toolbar-tools {
-  @extend .md-title;
+  @include md-title();
   font-weight: 400;
   display: flex;
   align-items: center;
@@ -99,6 +99,13 @@ md-toolbar {
   }
   &> .md-button:last-child {
     margin-right: $icon-button-margin-offset;
+  }
+
+  &> md-menu:last-child {
+    margin-right: $icon-button-margin-offset;
+    & > .md-button {
+      margin-right: 0;
+    }
   }
 
   @media screen and (-ms-high-contrast: active) {

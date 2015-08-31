@@ -69,7 +69,7 @@ md-input-container {
   }
 
   textarea.md-input {
-    min-height: 2 * $input-line-height + $input-border-width-focused + $input-padding-top;
+    min-height: $input-line-height;
     -ms-flex-preferred-size: auto; //IE fix
   }
 
@@ -80,7 +80,7 @@ md-input-container {
 
 
   label:not(.md-no-float),
-  .md-placeholder:not(.md-select-label) {
+  .md-placeholder {
     order: 1;
     pointer-events: none;
     -webkit-font-smoothing: antialiased;
@@ -91,12 +91,15 @@ md-input-container {
 
     @include rtl(transform-origin, left top, right top);
   }
-  .md-placeholder:not(.md-select-label) {
+  .md-placeholder {
     position: absolute;
     top: 0;
     opacity: 0;
     transition-property: opacity, transform;
     transform: translate3d(0, $input-placeholder-offset + $baseline-grid * 0.75, 0);
+    &.md-static {
+      position: static;
+    }
   }
   &.md-input-focused .md-placeholder {
     opacity: 1;
@@ -108,18 +111,27 @@ md-input-container {
     opacity: 0;
   }
 
-  &:not( .md-input-has-value ) input:not( :focus ) {
-    color: transparent;
+  &:not( .md-input-has-value ) input:not( :focus ),
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-ampm-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-day-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-hour-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-millisecond-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-minute-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-month-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-second-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-week-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-year-field,
+  &:not( .md-input-has-value ) input:not( :focus )::-webkit-datetime-edit-text {
+      color: transparent;
   }
-
 
   /*
    * The .md-input class is added to the input/textarea
    */
   .md-input {
-    flex: 1 1 auto;
     order: 2;
     display: block;
+    margin-top: auto;
 
     background: none;
     padding-top: $input-padding-top;
@@ -138,6 +150,10 @@ md-input-container {
       outline: none;
       box-shadow: none;
     }
+
+    &.md-no-flex {
+      flex: none !important;
+    }
   }
 
   ng-messages, data-ng-messages, x-ng-messages,
@@ -148,7 +164,7 @@ md-input-container {
   ng-message, data-ng-message, x-ng-message,
   [ng-message], [data-ng-message], [x-ng-message],
   .md-char-counter {
-    -webkit-font-smoothing: antialiased;
+    //-webkit-font-smoothing: antialiased;
     position: absolute;
     font-size: $input-error-font-size;
     line-height: $input-error-height;

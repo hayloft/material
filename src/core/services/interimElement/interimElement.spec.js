@@ -1,41 +1,9 @@
 describe('$$interimElement service', function() {
+
   beforeEach(module('material.core'));
-  var $compilerSpy, $themingSpy, resolvingPromise;
 
-  function setup() {
-    module('material.core', 'ngAnimateMock', function($provide) {
-      var $mdCompiler = { compile: angular.noop };
-      $compilerSpy = spyOn($mdCompiler, 'compile');
-      $themingSpy = jasmine.createSpy('$mdTheming');
-
-      $provide.value('$mdCompiler', $mdCompiler);
-      $provide.value('$mdTheming', $themingSpy);
-    });
-    inject(function($q, $compile, $rootScope) {
-      $compilerSpy.and.callFake(function(opts) {
-        var el = $compile(opts.template);
-        var deferred = $q.defer();
-        deferred.resolve({
-          link: el,
-          locals: {}
-        });
-        !$rootScope.$$phase && $rootScope.$apply();
-        return deferred.promise;
-      });
-    });
-  }
-
-  function createInterimProvider(providerName) {
-    var interimProvider;
-    module(function($$interimElementProvider, $provide) {
-      interimProvider = $$interimElementProvider(providerName);
-      $provide.provider(providerName, interimProvider);
-    });
-
-    setup(); 
-
-    return interimProvider;
-  }
+  var $rootScope, $animate, $q, $timeout;
+  var $compilerSpy, $themingSpy;
 
   describe('provider', function() {
 
@@ -78,10 +46,10 @@ describe('$$interimElement service', function() {
     it('should not call onShow or onRemove on failing to load templates', function() {
       createInterimProvider('interimTest');
       inject(function($q, $rootScope, $rootElement, interimTest, $httpBackend, $animate) {
-        $compilerSpy.and.callFake(function() {
-          var deferred = $q.defer();
-          deferred.reject();
-          return deferred.promise;
+        $compilerSpy.and.callFake(function(reason) {
+          return $q(function(resolve,reject){
+            reject(reason || false);
+          });
         });
         $httpBackend.when('GET', '/fail-url.html').respond(500, '');
         var onShowCalled = false, onHideCalled = false;
@@ -91,8 +59,9 @@ describe('$$interimElement service', function() {
           onRemove: function() { onHideCalled = true; }
         });
         $animate.triggerCallbacks();
-        interimTest.hide();
+        interimTest.cancel();
         $animate.triggerCallbacks();
+
         expect(onShowCalled).toBe(false);
         expect(onHideCalled).toBe(false);
       });
@@ -226,28 +195,24 @@ describe('$$interimElement service', function() {
           },
           methods: ['key2']
         });
-      inject(function(interimTest, $rootScope, $animate) {
+      inject(function(interimTest) {
         interimTest.show();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
+        flush();
         expect($compilerSpy.calls.mostRecent().args[0].key).toBe('defaultValue');
         $compilerSpy.calls.reset();
 
         interimTest.show({
           key: 'newValue'
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+        flush();
+        flush();
         expect($compilerSpy.calls.mostRecent().args[0].key).toBe('newValue');
         $compilerSpy.calls.reset();
 
         interimTest.show(interimTest.preset());
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+        flush();
+        flush();
         expect($compilerSpy.calls.mostRecent().args[0].key).toBe('defaultValue');
         expect($compilerSpy.calls.mostRecent().args[0].key2).toBe('defaultValue2');
 
@@ -258,27 +223,21 @@ describe('$$interimElement service', function() {
             key2: 'newValue2'
           })
         );
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+        flush();
+        flush();
         expect($compilerSpy.calls.mostRecent().args[0].key).toBe('newValue');
         expect($compilerSpy.calls.mostRecent().args[0].key2).toBe('newValue2');
         
         $compilerSpy.calls.reset();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+        flush();
+        flush();
         interimTest.show(
           interimTest.preset({
             key2: 'newValue2'
           }).key2('superNewValue2')
         );
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+        flush();
+        flush();
         expect($compilerSpy.calls.mostRecent().args[0].key).toBe('defaultValue');
         expect($compilerSpy.calls.mostRecent().args[0].key2).toBe('superNewValue2');
       });
@@ -288,18 +247,86 @@ describe('$$interimElement service', function() {
 
   describe('a service', function() {
     var Service;
+
     beforeEach(function() {
       setup();
-      inject(function($$interimElement) {
+      inject(function($$interimElement, _$q_, _$timeout_) {
+        $q = _$q_;
+        $timeout = _$timeout_;
+
         Service = $$interimElement();
+
+        Service.show = tailHook(Service.show, flush);
+        Service.hide = tailHook(Service.hide, flush);
+        Service.cancel = tailHook(Service.cancel, flush);
       });
     });
 
+
     describe('instance#show', function() {
+
+
       it('inherits default options', inject(function($$interimElement) {
         var defaults = { templateUrl: 'testing.html' };
         Service.show(defaults);
         expect($compilerSpy.calls.mostRecent().args[0].templateUrl).toBe('testing.html');
+      }));
+
+      describe('captures and fails with ',function(){
+
+       it('internal reject during show()', inject(function($q,$timeout) {
+         var showFailed, onShowFail = function() {
+           showFailed = true;
+         };
+
+         Service.show({
+           templateUrl: 'testing.html',
+           onShow : function() {   return $q.reject("failed"); }
+         })
+         .catch( onShowFail );
+         $timeout.flush();
+
+         expect(showFailed).toBe(true);
+       }));
+
+       it('internal exception during show()', inject(function($q,$timeout) {
+         var showFailed, onShowFail = function(reason) {
+           showFailed = reason;
+         };
+
+         Service.show({
+           templateUrl: 'testing.html',
+           onShow : function() {   throw new Error("exception"); }
+         })
+         .catch( onShowFail );
+         $timeout.flush();
+
+         expect(showFailed).toBe('exception');
+       }));
+
+      });
+
+      it('show() captures pending promise that resolves with hide()', inject(function($q,$timeout) {
+        var showFinished, onShowHandler = function() {
+          showFinished = true;
+        };
+
+        Service.show({
+          templateUrl: 'testing.html',
+          onShow : function() {
+            return $q.when(true);
+          }
+        })
+        .then( onShowHandler );
+        $timeout.flush();
+
+        expect(showFinished).toBeUndefined();
+
+        Service.hide('confirmed');
+        $timeout.flush();
+
+        expect(showFinished).toBe(true);
+
       }));
 
       it('forwards options to $mdCompiler', inject(function($$interimElement) {
@@ -310,31 +337,25 @@ describe('$$interimElement service', function() {
 
       it('supports theming', inject(function($$interimElement, $rootScope) {
         Service.show({themable: true});
-        $rootScope.$digest();
         expect($themingSpy).toHaveBeenCalled();
       }));
 
       it('calls hide after hideDelay', inject(function($animate, $timeout, $rootScope) {
-        var hideSpy = spyOn(Service, 'cancel').and.callThrough();
+        var hideSpy = spyOn(Service, 'hide').and.callThrough();
         Service.show({hideDelay: 1000});
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
-        $timeout.flush();
         expect(hideSpy).toHaveBeenCalled();
       }));
 
-      it('calls onRemove', inject(function($rootScope, $animate) {
+      it('calls onRemove', inject(function() {
         var onRemoveCalled = false;
         Service.show({
           template: '<some-element />',
           isPassingOptions: true,
           onRemove: onRemove
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         Service.hide();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         expect(onRemoveCalled).toBe(true);
 
         function onRemove(scope, el, options) {
@@ -356,7 +377,6 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         expect(shown).toBe(true);
       }));
 
@@ -371,7 +391,6 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         $rootElement[0] = originalRoot;
         expect(shown).toBe(true);
       }));
@@ -387,7 +406,6 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         $rootElement[0] = originalRoot;
         expect(shown).toBe(true);
       }));
@@ -403,7 +421,6 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         expect(shown).toBe(true);
       }));
 
@@ -420,7 +437,6 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         expect(shown).toBe(true);
       }));
 
@@ -437,31 +453,46 @@ describe('$$interimElement service', function() {
             shown = true;
           }
         });
-        $rootScope.$digest();
         expect(shown).toBe(true);
       }));
     });
 
 
     describe('#hide', function() {
-      it('calls onRemove', inject(function($rootScope, $animate) {
+
+      it('calls onRemove', inject(function() {
         var onRemoveCalled = false;
         Service.show({
           template: '<some-element />',
           passingOptions: true,
           onRemove: onRemove
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         Service.hide();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         expect(onRemoveCalled).toBe(true);
 
         function onRemove(scope, el, options) {
           onRemoveCalled = true;
           expect(options.passingOptions).toBe(true);
           expect(el[0]).toBeTruthy();
+        }
+      }));
+
+      it('calls onRemoving', inject(function() {
+        var onRemoveStarted = false;
+        Service.show({
+          template: '<some-element />',
+          passingOptions: true,
+          onRemoving: onRemoving
+        });
+
+        Service.hide();
+
+        expect(onRemoveStarted).toBe(true);
+
+        function onRemoving(scope, el) {
+          onRemoveStarted = true;
         }
       }));
 
@@ -472,28 +503,80 @@ describe('$$interimElement service', function() {
           expect(arg).toBe('test');
           resolved = true;
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         Service.hide('test');
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         expect(resolved).toBe(true);
       }));
+
+      describe('captures and fails with ',function(){
+
+       it('internal exception during hide()', inject(function($q, $timeout) {
+         var showGood, hideFail,
+             onShowHandler = function(reason) {  showGood = true;},
+             onHideHandler = function(reason) {
+               hideFail  = true;
+             };
+         var options = {
+               templateUrl: 'testing.html',
+               onShow   : function() {  return $q.when(true)  },
+               onRemove : function() {  throw new Error("exception"); }
+             };
+
+         Service.show(options).then( onShowHandler, onHideHandler );
+         $timeout.flush();
+
+         expect(showGood).toBeUndefined();
+         expect(hideFail).toBeUndefined();
+
+         Service.hide().then( onShowHandler, onHideHandler );
+         $timeout.flush();
+
+         expect(showGood).toBeUndefined();
+         expect(hideFail).toBe(true);
+       }));
+
+       it('internal reject during hide()', inject(function($q, $timeout) {
+          var showGood, hideFail,
+              onShowHandler = function(reason) {  showGood = true;},
+              onHideHandler = function(reason) {
+                hideFail  = reason;
+              };
+          var options = {
+                templateUrl: 'testing.html',
+                onShow   : function() {  return $q.when(true)  },
+                onRemove : function() {  return $q.reject("failed");  }
+              };
+
+          Service.show(options).then( onShowHandler, onHideHandler );
+          $timeout.flush();
+
+          expect(showGood).toBeUndefined();
+          expect(hideFail).toBeUndefined();
+
+          Service.hide().then( onShowHandler, onHideHandler );
+          $timeout.flush();
+
+          expect(showGood).toBeUndefined();
+          expect(hideFail).toBe("failed");
+        }));
+
+      });
+
+
     });
 
     describe('#cancel', function() {
-      it('calls onRemove', inject(function($rootScope, $animate) {
+      it('calls onRemove', inject(function() {
         var onRemoveCalled = false;
         Service.show({
           template: '<some-element />',
           passingOptions: true,
           onRemove: onRemove
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         Service.cancel();
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         expect(onRemoveCalled).toBe(true);
 
         function onRemove(scope, el, options) {
@@ -503,21 +586,78 @@ describe('$$interimElement service', function() {
         }
       }));
 
-      it('rejects the show promise', inject(function($animate, $rootScope) {
+      it('rejects the show promise', inject(function() {
         var rejected = false;
 
         Service.show().catch(function(arg) {
           expect(arg).toBe('test');
           rejected = true;
         });
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
+
         Service.cancel('test');
-        $rootScope.$digest();
-        $animate.triggerCallbacks();
         expect(rejected).toBe(true);
       }));
     });
   });
+
+
+  // ************************************************
+  // Internal utility methods
+  // ************************************************
+
+  function setup() {
+    module('material.core', function($provide) {
+      var $mdCompiler = { compile: angular.noop };
+      $compilerSpy = spyOn($mdCompiler, 'compile');
+      $themingSpy = jasmine.createSpy('$mdTheming');
+
+      $provide.value('$mdCompiler', $mdCompiler);
+      $provide.value('$mdTheming', $themingSpy);
+    });
+    inject(function($q, $compile, _$rootScope_, _$animate_, _$timeout_) {
+      $rootScope = _$rootScope_;
+      $animate = _$animate_;
+      $timeout = _$timeout_;
+
+      $compilerSpy.and.callFake(function(opts) {
+        var el = $compile(opts.template);
+        return $q(function(resolve){
+          resolve({
+            link: el,
+            locals: {}
+          });
+          !$rootScope.$$phase && $rootScope.$apply();
+        });
+      });
+    });
+  }
+
+  function createInterimProvider(providerName) {
+    var interimProvider;
+    module(function($$interimElementProvider, $provide) {
+      interimProvider = $$interimElementProvider(providerName);
+      $provide.provider(providerName, interimProvider);
+    });
+
+    setup();
+    return interimProvider;
+  }
+
+  function flush() {
+     $rootScope.$digest();
+     $animate.triggerCallbacks();
+     $timeout.flush();
+  }
+
+  function tailHook( sourceFn, hookFn ) {
+    return function() {
+      var args = Array.prototype.slice.call(arguments);
+      var results = sourceFn.apply(null, args);
+      hookFn();
+
+      return results;
+    }
+  }
+
 });
 

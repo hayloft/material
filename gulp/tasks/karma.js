@@ -4,13 +4,15 @@ var util = require('../util');
 var ROOT = require('../const').ROOT;
 var args = util.args;
 
+// Make full build of JS and CSS
+exports.dependencies = ['build'];
+
 exports.task = function (done) {
   var errorCount = 0;
   var karmaConfig = {
     logLevel: 'warn',
     singleRun: true,
     autoWatch: false,
-    browsers: args.browsers ? args.browsers.trim().split(',') : ['Chrome'],
     configFile: ROOT + '/config/karma.conf.js'
   };
 
@@ -35,8 +37,17 @@ exports.task = function (done) {
   }
 
 
+  if ( args.browsers ) {
+    karmaConfig.browsers = args.browsers.trim().split(',');
+  } else {
+    karmaConfig.browsers = ['Firefox', 'PhantomJS'];
+  }
+
+  if ( args.reporters ) {
+    karmaConfig.reporters = args.reporters.trim().split(',');
+  }
+
   gutil.log('Running unit tests on unminified source.');
-  util.buildJs(true);
   karma.start(karmaConfig, captureError(testMinified,clearEnv));
 
   function testMinified() {
