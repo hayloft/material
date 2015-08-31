@@ -168,7 +168,7 @@ angular.module('material.components.icon', [
  * </hljs>
  *
  */
-function mdIconDirective($mdIcon, $mdTheming, $mdAria ) {
+function mdIconDirective($mdIcon, $mdTheming, $mdAria, $compile ) {
 
   return {
     scope: {
