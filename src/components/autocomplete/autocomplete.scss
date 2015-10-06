@@ -16,6 +16,7 @@ $input-error-height: 24px !default;
     opacity: 0;
   }
 }
+
 @keyframes md-autocomplete-list-in {
   0% {
     opacity: 0;
@@ -31,6 +32,7 @@ $input-error-height: 24px !default;
     height: 40px;
   }
 }
+
 md-autocomplete {
   border-radius: 2px;
   display: block;
@@ -44,12 +46,19 @@ md-autocomplete {
     }
   }
   &[md-floating-label] {
-    padding-bottom: $input-container-padding + $input-error-height;
     border-radius: 0;
     background: transparent;
     height: auto;
+
     md-input-container {
-      padding-bottom: 0;
+      padding-bottom: $input-container-padding + $input-error-height;
+
+      // When we have ng-messages, remove the input error height from our bottom padding, since the
+      // ng-messages wrapper has a min-height of 1 error (so we don't adjust height as often; see
+      // input.scss file)
+      &.md-input-has-messages {
+        padding-bottom: $input-container-padding;
+      }
     }
     md-autocomplete-wrap {
       height: auto;
@@ -71,45 +80,44 @@ md-autocomplete {
     &.md-menu-showing {
       z-index: $z-index-backdrop + 1;
     }
-    md-progress-linear[md-mode=indeterminate] {
+    md-progress-linear {
       position: absolute;
-      bottom: 0; left: 0; width: 100%;
-      height: 3px;
-      transition: none;
+      bottom: -2px;
+      left: 0;
 
-      .md-container {
-        transition: none;
-        top: auto;
+      .md-mode-indeterminate {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
         height: 3px;
-      }
-      &.ng-enter {
-        transition: opacity 0.15s linear;
-        &.ng-enter-active {
-          opacity: 1;
+        transition: none;
+
+        .md-container {
+          transition: none;
+          height: 3px;
         }
-      }
-      &.ng-leave {
-        transition: opacity 0.15s linear;
-        &.ng-leave-active {
-          opacity: 0;
+        &.ng-enter {
+          transition: opacity 0.15s linear;
+          &.ng-enter-active {
+            opacity: 1;
+          }
+        }
+        &.ng-leave {
+          transition: opacity 0.15s linear;
+          &.ng-leave-active {
+            opacity: 0;
+          }
         }
       }
     }
   }
   input:not(.md-input) {
+    @include md-flat-input();
     width: 100%;
-    box-sizing: border-box;
-    border: none;
-    box-shadow: none;
     padding: 0 15px;
-    font-size: 14px;
     line-height: 40px;
     height: 40px;
-    outline: none;
-    background: transparent;
-    &::-ms-clear {
-      display: none;
-    }
   }
   button {
     position: relative;
@@ -178,16 +186,20 @@ md-autocomplete {
     }
   }
 }
-.md-autocomplete-suggestions {
+
+.md-virtual-repeat-container.md-autocomplete-suggestions-container {
   position: absolute;
+  box-shadow: 0 2px 5px rgba(black, 0.25);
+  height: 41px * 5.5;
+  max-height: 41px * 5.5;
+  z-index: $z-index-tooltip;
+}
+
+.md-autocomplete-suggestions {
   margin: 0;
   list-style: none;
   padding: 0;
-  overflow: auto;
-  max-height: 41px * 5.5;
-  z-index: $z-index-tooltip;
   li {
-    cursor: pointer;
     font-size: 14px;
     overflow: hidden;
     padding: 0 15px;
@@ -197,23 +209,17 @@ md-autocomplete {
     margin: 0;
     white-space: nowrap;
     text-overflow: ellipsis;
-    &.ng-enter,
-    &.ng-hide-remove {
-      transition: none;
-      animation: md-autocomplete-list-in 0.2s;
-    }
-    &.ng-leave,
-    &.ng-hide-add {
-      transition: none;
-      animation: md-autocomplete-list-out 0.2s;
-    }
 
     &:focus {
-        outline: none;
-      }
+      outline: none;
+    }
 
+    &:not(.md-not-found-wrapper) {
+      cursor: pointer;
+    }
   }
 }
+
 @media screen and (-ms-high-contrast: active) {
   md-autocomplete,
   .md-autocomplete-suggestions {

@@ -1,4 +1,4 @@
-<div ng-controller="CustomInputDemoCtrl as ctrl" layout="column">
+<div ng-controller="CustomInputDemoCtrl as ctrl" layout="column" ng-cloak>
 
   <md-content class="md-padding" layout="column">
     <h2 class="md-title">Use an <code>input</code> element with no model to build an ordered set of chips.</h2>
@@ -15,7 +15,7 @@
     <br/>
     <h2 class="md-title">Use <code>md-autocomplete</code>  to build an ordered set of chips.</h2>
 
-    <md-chips ng-model="ctrl.selectedVegetables" md-autocomplete-snap md-require-match>
+    <md-chips ng-model="ctrl.selectedVegetables" md-autocomplete-snap md-require-match="true">
       <md-autocomplete
           md-selected-item="ctrl.selectedItem"
           md-search-text="ctrl.searchText"

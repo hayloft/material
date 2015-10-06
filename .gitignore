@@ -4,3 +4,5 @@ node_modules
 /src/themes/_default-theme.scss
 dist
 /.idea/
+.nvmrc
+tmp/

@@ -116,8 +116,13 @@ function InterimElementProvider() {
       var publicService = {
         hide: interimElementService.hide,
         cancel: interimElementService.cancel,
-        show: showInterimElement
+        show: showInterimElement,
+
+        // Special internal method to destroy an interim element without animations
+        // used when navigation changes causes a $scope.$destroy() action
+        destroy : destroyInterimElement
       };
+
 
       defaultMethods = providerConfig.methods || [];
       // This must be invoked after the publicService is initialized
@@ -178,9 +183,11 @@ function InterimElementProvider() {
           //
           // @example `$mdToast.simple('hello')` // sets options.content to hello
           //                                     // because argOption === 'content'
-          if (arguments.length && definition.argOption && !angular.isObject(arg) &&
-              !angular.isArray(arg)) {
+          if (arguments.length && definition.argOption &&
+              !angular.isObject(arg) && !angular.isArray(arg))  {
+
             return (new Preset())[definition.argOption](arg);
+
           } else {
             return new Preset(arg);
           }
@@ -190,6 +197,9 @@ function InterimElementProvider() {
 
       return publicService;
 
+      /**
+       *
+       */
       function showInterimElement(opts) {
         // opts is either a preset which stores its options on an _options field,
         // or just an object made up of options
@@ -199,6 +209,17 @@ function InterimElementProvider() {
         return interimElementService.show(
           angular.extend({}, defaultOptions, opts)
         );
+      }
+
+      /**
+       *  Special method to hide and destroy an interimElement WITHOUT
+       *  any 'leave` or hide animations ( an immediate force hide/remove )
+       *
+       *  NOTE: This calls the onRemove() subclass method for each component...
+       *  which must have code to respond to `options.$destroy == true`
+       */
+      function destroyInterimElement(opts) {
+          return interimElementService.destroy(opts);
       }
 
       /**
@@ -219,13 +240,8 @@ function InterimElementProvider() {
   }
 
   /* @ngInject */
-  function InterimElementFactory($document, $q, $rootScope, $timeout, $rootElement, $animate,
-                                 $interpolate, $mdCompiler, $mdTheming, $log ) {
-    var startSymbol = $interpolate.startSymbol(),
-        endSymbol = $interpolate.endSymbol(),
-        usesStandardSymbols = ((startSymbol === '{{') && (endSymbol === '}}')),
-        processTemplate  = usesStandardSymbols ? angular.identity : replaceInterpolationSymbols;
-
+  function InterimElementFactory($document, $q, $$q, $rootScope, $timeout, $rootElement, $animate,
+                                 $mdUtil, $mdCompiler, $mdTheming, $log ) {
     return function createInterimElementService() {
       var SHOW_CANCELLED = false;
       var SHOW_CLOSED = true;
@@ -246,7 +262,8 @@ function InterimElementProvider() {
       return service = {
         show: show,
         hide: hide,
-        cancel: cancel
+        cancel: cancel,
+        destroy : destroy
       };
 
       /*
@@ -263,6 +280,7 @@ function InterimElementProvider() {
        *
        */
       function show(options) {
+        options = options || {};
         options.zIndex = 80 + stack.length;
         var interimElement = new InterimElement(options);
         stack.unshift(interimElement);
@@ -283,17 +301,30 @@ function InterimElementProvider() {
        * @returns a Promise that will be resolved after the element has been removed.
        *
        */
-      function hide(reason) {
-        var interim = stack.shift();
-        if ( !interim ) return $q.when(reason);
+      function hide(reason, options) {
+        if ( !stack.length ) return $q.when(reason || SHOW_CLOSED);
+        options = options || {};
 
-        interim
-          .remove(reason || SHOW_CLOSED, false)
-          .catch(function( reason ) {
-            // $log.error("InterimElement.hide() error: " + reason );
-          });
+        if (options.closeAll) {
+          var promise = $q.all(stack.reverse().map(closeElement));
+          stack = [];
+          return promise;
+        } else if (options.closeTo !== undefined) {
+          return $q.all(stack.splice(options.closeTo).map(closeElement));
+        } else {
+          var interim = stack.pop();
+          return closeElement(interim);
+        }
 
-        return interim.deferred.promise;
+        function closeElement(interim) {
+          interim
+            .remove(reason || SHOW_CLOSED, false, options || { })
+            .catch(function( reason ) {
+              //$log.error("InterimElement.hide() error: " + reason );
+              return reason;
+            });
+          return interim.deferred.promise;
+        }
       }
 
       /*
@@ -308,17 +339,28 @@ function InterimElementProvider() {
        * @returns Promise that will be resolved after the element has been removed.
        *
        */
-      function cancel(reason) {
+      function cancel(reason, options) {
         var interim = stack.shift();
-        if ( !interim ) return $q.when(reason);
+        if ( !interim ) return $q.when(reason || SHOW_CANCELLED);
 
         interim
-          .remove(reason || SHOW_CANCELLED, true)
+          .remove(reason || SHOW_CANCELLED, true, options || { })
           .catch(function( reason ) {
-            // $log.error("InterimElement.cancel() error: " + reason );
+            //$log.error("InterimElement.cancel() error: " + reason );
+            return reason;
           });
 
         return interim.deferred.promise;
+      }
+
+      /*
+       * Special method to quick-remove the interim element without animations
+       */
+      function destroy() {
+        var interim = stack.shift();
+
+        return interim ? interim.remove(SHOW_CANCELLED, false, {'$destroy':true}) :
+               $q.when(SHOW_CANCELLED);
       }
 
 
@@ -349,10 +391,10 @@ function InterimElementProvider() {
               .then(function( compiledData ) {
                 element = linkElement( compiledData, options );
 
-                showAction = showElement(element, options)
+                showAction = showElement(element, options, compiledData.controller)
                   .then(resolve, rejectAll );
 
-              });
+              }, rejectAll);
 
             function rejectAll(fault) {
               // Force the '$md<xxx>.show()' promise to reject
@@ -370,38 +412,46 @@ function InterimElementProvider() {
          * - perform the transition-out, and
          * - perform optional clean up scope.
          */
-        function transitionOutAndRemove(response, isCancelled) {
-          options.cancelAutoHide && options.cancelAutoHide();
+        function transitionOutAndRemove(response, isCancelled, opts) {
 
-          return $q(function(resolve, reject){
+          // abort if the show() and compile failed
+          if ( !element ) return $q.when(false);
 
             $q.when(showAction).finally(function(){
+
               hideElement(options.element, options).then( function() {
 
-                (isCancelled && rejectAll(response)) || resolveAll();
+            return hideElement(options.element, options);
 
-              }, rejectAll );
+          } else {
 
-            });
+            $q.when(showAction)
+                .finally(function() {
+                  hideElement(options.element, options).then(function() {
 
-            function resolveAll() {
-              // The `show()` returns a promise that will be resolved when the interim
-              // element is hidden or cancelled...
-              self.deferred.resolve(response);
+                    (isCancelled && rejectAll(response)) || resolveAll(response);
 
-              // Now resolve the `.hide()` promise itself (optional)
-              resolve(response);
-            }
+                  }, rejectAll);
+                });
 
-            function rejectAll(fault) {
-              // Force the '$md<xxx>.show()' promise to reject
-              self.deferred.reject(fault);
+            return self.deferred.promise;
+          }
 
-              // Continue rejection propagation
-              reject(fault);
-            }
 
-          });
+          /**
+           * The `show()` returns a promise that will be resolved when the interim
+           * element is hidden or cancelled...
+           */
+          function resolveAll(response) {
+            self.deferred.resolve(response);
+          }
+
+          /**
+           * Force the '$md<xxx>.show()' promise to reject
+           */
+          function rejectAll(fault) {
+            self.deferred.reject(fault);
+          }
         }
 
         /**
@@ -411,7 +461,7 @@ function InterimElementProvider() {
         function configureScopeAndTransitions(options) {
           options = options || { };
           if ( options.template ) {
-            options.template = processTemplate(options.template);
+            options.template = $mdUtil.processTemplate(options.template);
           }
 
           return angular.extend({
@@ -527,7 +577,7 @@ function InterimElementProvider() {
          * Show the element ( with transitions), notify complete and start
          * optional auto-Hide
          */
-        function showElement(element, options) {
+        function showElement(element, options, controller) {
           // Trigger onComplete callback when the `show()` finishes
           var notifyComplete = options.onComplete || angular.noop;
 
@@ -535,9 +585,8 @@ function InterimElementProvider() {
             try {
 
               // Start transitionIn
-              $q.when(options.onShow(options.scope, element, options))
+              $q.when(options.onShow(options.scope, element, options, controller))
                 .then(function () {
-
                   notifyComplete(options.scope, element, options);
                   startAutoHide();
 
@@ -554,21 +603,32 @@ function InterimElementProvider() {
         function hideElement(element, options) {
           var announceRemoving = options.onRemoving || angular.noop;
 
-          return $q(function (resolve, reject) {
+          return $$q(function (resolve, reject) {
             try {
               // Start transitionIn
-              var action = $q.when(element ? options.onRemove(options.scope, element, options) : true);
+              var action = $$q.when( options.onRemove(options.scope, element, options) || true );
 
               // Trigger callback *before* the remove operation starts
               announceRemoving(element, action);
 
-              // Wait until transition-out is done
-              action.then(function () {
+              if ( options.$destroy == true ) {
 
-                !options.preserveScope && options.scope.$destroy();
+                // For $destroy, onRemove should be synchronous
                 resolve(element);
 
-              }, reject );
+              } else {
+
+                // Wait until transition-out is done
+                action.then(function () {
+
+                  if (!options.preserveScope && options.scope ) {
+                    options.scope.$destroy();
+                  }
+
+                  resolve(element);
+
+                }, reject );
+              }
 
             } catch(e) {
               reject(e.message);
@@ -582,19 +642,6 @@ function InterimElementProvider() {
         return self;
       }
     };
-
-    /**
-     * Replace `{{` and `}}` in a string (usually a template) with the actual start-/endSymbols used
-     * for interpolation. This allows pre-defined templates (for components such as dialog, toast etc)
-     * to continue to work in apps that use custom interpolation start-/endSymbols.
-     *
-     * @param {string} text The text in which to replace `{{` / `}}`
-     * @returns {string} The modified string using the actual interpolation start-/endSymbols
-     */
-    function replaceInterpolationSymbols(text) {
-      if (!text || !angular.isString(text)) return text;
-      return text.replace(/\{\{/g, startSymbol).replace(/}}/g, endSymbol);
-    }
 
   }
 

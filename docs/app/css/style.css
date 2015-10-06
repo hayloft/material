@@ -1,4 +1,4 @@
-.hide { display: none !important; }
+
 html {
   font-size: 62.5%;
   line-height: 1.4;
@@ -226,6 +226,8 @@ code:not(.highlight) {
 .docs-menu ul {
   list-style: none;
   padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .docs-menu li {
   margin: 0;
@@ -520,7 +522,7 @@ md-tabs.demo-source-tabs .active md-tab-label {
   min-height: 224px;
 }
 .layout-content .small-demo .demo-content > div[layout],
-.layout-options .small-demo .demo-content > div[layout] {
+.layout-options .small-demo .demo-content > div.layout {
   min-height: auto !important;
   max-height: auto !important;
   height: 128px !important;

@@ -6,7 +6,7 @@ angular
  * @ngInject
  */
 function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipple,
-                           $mdUtil, $animate, $attrs, $compile, $mdTheming) {
+                           $mdUtil, $animateCss, $attrs, $compile, $mdTheming) {
   // define private properties
   var ctrl      = this,
       locked    = false,
@@ -33,6 +33,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   defineBooleanAttribute('noDisconnect');
   defineBooleanAttribute('autoselect');
   defineBooleanAttribute('centerTabs', handleCenterTabs);
+  defineBooleanAttribute('enableDisconnect');
 
   // define public properties
   ctrl.scope             = $scope;
@@ -58,6 +59,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   ctrl.canPageBack        = canPageBack;
   ctrl.refreshIndex       = refreshIndex;
   ctrl.incrementIndex     = incrementIndex;
+  ctrl.getTabElementIndex = getTabElementIndex;
   ctrl.updateInkBarStyles = $mdUtil.debounce(updateInkBarStyles, 100);
   ctrl.updateTabOrder     = $mdUtil.debounce(updateTabOrder, 100);
 
@@ -129,7 +131,11 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   function defineBooleanAttribute (key, handler) {
     var attr = $attrs.$normalize('md-' + key);
     if (handler) defineProperty(key, handler);
-    $attrs.$observe(attr, function (newValue) { ctrl[ key ] = newValue !== 'false'; });
+    if ($attrs.hasOwnProperty(attr)) updateValue($attrs[attr]);
+    $attrs.$observe(attr, updateValue);
+    function updateValue (newValue) {
+      ctrl[ key ] = newValue !== 'false';
+    }
   }
 
   /**
@@ -209,7 +215,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    */
   function handleSelectedIndexChange (newValue, oldValue) {
     if (newValue === oldValue) return;
-
+    
     ctrl.selectedIndex     = getNearestSafeIndex(newValue);
     ctrl.lastSelectedIndex = oldValue;
     ctrl.updateInkBarStyles();
@@ -218,6 +224,11 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
     $scope.$broadcast('$mdTabsChanged');
     ctrl.tabs[ oldValue ] && ctrl.tabs[ oldValue ].scope.deselect();
     ctrl.tabs[ newValue ] && ctrl.tabs[ newValue ].scope.select();
+  }
+
+  function getTabElementIndex(tabEl){
+    var tabs = $element[0].getElementsByTagName('md-tab');
+    return Array.prototype.indexOf.call(tabs, tabEl[0]);
   }
 
   /**
@@ -238,7 +249,6 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
           handleResizeWhenVisible.watcher();
           handleResizeWhenVisible.watcher = null;
 
-          // we have to trigger our own $apply so that the DOM bindings will update
           handleWindowResize();
         }
       }, false);
@@ -324,11 +334,11 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    * Update size calculations when the window is resized.
    */
   function handleWindowResize () {
-    $scope.$apply(function () {
-      ctrl.lastSelectedIndex = ctrl.selectedIndex;
-      ctrl.offsetLeft        = fixOffset(ctrl.offsetLeft);
-      $mdUtil.nextTick(ctrl.updateInkBarStyles, false);
-      $mdUtil.nextTick(updatePagination);
+    ctrl.lastSelectedIndex = ctrl.selectedIndex;
+    ctrl.offsetLeft        = fixOffset(ctrl.offsetLeft);
+    $mdUtil.nextTick(function () {
+      ctrl.updateInkBarStyles();
+      updatePagination();
     });
   }
 
@@ -476,7 +486,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    */
   function shouldPaginate () {
     if (ctrl.noPagination || !loaded) return false;
-    var canvasWidth = Math.min($element.prop('clientWidth'), ctrl.maxTabWidth);
+    var canvasWidth = $element.prop('clientWidth');
     angular.forEach(elements.dummies, function (tab) { canvasWidth -= tab.offsetWidth; });
     return canvasWidth < 0;
   }
@@ -528,7 +538,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   }
 
   function getMaxTabWidth () {
-    return elements.canvas.clientWidth;
+    return $element.prop('clientWidth');
   }
 
   /**
@@ -579,7 +589,7 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
     var tab         = elements.tabs[ index ],
         left        = tab.offsetLeft,
         right       = tab.offsetWidth + left;
-    ctrl.offsetLeft = Math.max(ctrl.offsetLeft, fixOffset(right - elements.canvas.clientWidth));
+    ctrl.offsetLeft = Math.max(ctrl.offsetLeft, fixOffset(right - elements.canvas.clientWidth + 32 * 2));
     ctrl.offsetLeft = Math.min(ctrl.offsetLeft, fixOffset(left));
   }
 
@@ -618,23 +628,58 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
   function updateHeightFromContent () {
     if (!ctrl.dynamicHeight) return $element.css('height', '');
     if (!ctrl.tabs.length) return queue.push(updateHeightFromContent);
+
     var tabContent    = elements.contents[ ctrl.selectedIndex ],
         contentHeight = tabContent ? tabContent.offsetHeight : 0,
         tabsHeight    = elements.wrapper.offsetHeight,
         newHeight     = contentHeight + tabsHeight,
-        currentHeight = $element.prop('clientHeight');
+        currentHeight = $element.prop('offsetHeight');
+
+    // Adjusts calculations for when the buttons are bottom-aligned since this relies on absolute
+    // positioning.  This should probably be cleaned up if a cleaner solution is possible.
+    if ($element.attr('md-align-tabs') === 'bottom') {
+      currentHeight -= tabsHeight;
+      newHeight -= tabsHeight;
+      // Need to include bottom border in these calculations
+      if ($element.attr('md-border-bottom') !== undefined) ++currentHeight;
+    }
+
     if (currentHeight === newHeight) return;
+
+    // Lock during animation so the user can't change tabs
     locked = true;
-    $animate
-        .animate(
-        $element,
-        { height: currentHeight + 'px' },
-        { height: newHeight + 'px' }
-    )
-        .then(function () {
-                $element.css('height', '');
-                locked = false;
-              });
+
+    var fromHeight = { height: currentHeight + 'px' },
+        toHeight = { height: newHeight + 'px' };
+
+    // Set the height to the current, specific pixel height to fix a bug on iOS where the height
+    // first animates to 0, then back to the proper height causing a visual glitch
+    $element.css(fromHeight);
+
+    // Animate the height from the old to the new
+    $animateCss($element, {
+      from: fromHeight,
+      to: toHeight,
+      easing: 'cubic-bezier(0.35, 0, 0.25, 1)',
+      duration: 0.5
+    }).start().done(function () {
+      // Then (to fix the same iOS issue as above), disable transitions and remove the specific
+      // pixel height so the height can size with browser width/content changes, etc.
+      $element.css({
+        transition: 'none',
+        height: ''
+      });
+
+      // In the next tick, re-allow transitions (if we do it all at once, $element.css is "smart"
+      // enough to batch it for us instead of doing it immediately, which undoes the original
+      // transition: none)
+      $mdUtil.nextTick(function() {
+        $element.css('transition', '');
+      });
+
+      // And unlock so tab changes can occur
+      locked = false;
+    });
   }
 
   /**
@@ -642,7 +687,10 @@ function MdTabsController ($scope, $element, $window, $mdConstant, $mdTabInkRipp
    * @returns {*}
    */
   function updateInkBarStyles () {
-    if (!elements.tabs[ ctrl.selectedIndex ]) return;
+    if (!elements.tabs[ ctrl.selectedIndex ]) {
+      angular.element(elements.inkBar).css({ left: 'auto', right: 'auto' });
+      return;
+    }
     if (!ctrl.tabs.length) return queue.push(ctrl.updateInkBarStyles);
     // if the element is not visible, we will not be able to calculate sizes until it is
     // we should treat that as a resize event rather than just updating the ink bar
