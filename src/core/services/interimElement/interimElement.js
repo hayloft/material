@@ -280,13 +280,27 @@ function InterimElementProvider() {
        *
        */
       function show(options) {
-        options = options || {};
-        options.zIndex = 80 + stack.length;
         var interimElement = new InterimElement(options);
-        stack.unshift(interimElement);
-        interimElement.show();
+        var hideExisting = stack.length ? service.hide() : $q.when(true);
 
-        return interimElement.deferred.promise
+        // This hide()s only the current interim element before showing the next, new one
+        // NOTE: this is not reversible (e.g. interim elements are not stackable)
+
+        hideExisting.finally(function() {
+
+          stack.push(interimElement);
+          interimElement
+            .show()
+            .catch(function( reason ) {
+              // $log.error("InterimElement.show() error: " + reason );
+            });
+
+        });
+
+        // Return a promise that will be resolved when the interim
+        // element is hidden or cancelled...
+
+        return interimElement.deferred.promise;
       }
 
       /*
@@ -417,14 +431,6 @@ function InterimElementProvider() {
           // abort if the show() and compile failed
           if ( !element ) return $q.when(false);
 
-            $q.when(showAction).finally(function(){
-
-              hideElement(options.element, options).then( function() {
-
-            return hideElement(options.element, options);
-
-          } else {
-
             $q.when(showAction)
                 .finally(function() {
                   hideElement(options.element, options).then(function() {
@@ -435,7 +441,6 @@ function InterimElementProvider() {
                 });
 
             return self.deferred.promise;
-          }
 
 
           /**

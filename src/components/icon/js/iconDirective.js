@@ -1,6 +1,6 @@
 angular
   .module('material.components.icon')
-  .directive('mdIcon', ['$mdIcon', '$mdTheming', '$mdAria', mdIconDirective]);
+  .directive('mdIcon', ['$mdIcon', '$mdTheming', '$mdAria', '$compile', mdIconDirective]);
 
 /**
  * @ngdoc directive
