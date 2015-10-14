@@ -281,14 +281,14 @@ function InterimElementProvider() {
        */
       function show(options) {
         var interimElement = new InterimElement(options);
-        var hideExisting = stack.length ? service.hide() : $q.when(true);
+        var hideExisting = $q.when(true);
 
         // This hide()s only the current interim element before showing the next, new one
         // NOTE: this is not reversible (e.g. interim elements are not stackable)
 
         hideExisting.finally(function() {
 
-          stack.push(interimElement);
+          stack.unshift(interimElement);
           interimElement
             .show()
             .catch(function( reason ) {
@@ -326,7 +326,7 @@ function InterimElementProvider() {
         } else if (options.closeTo !== undefined) {
           return $q.all(stack.splice(options.closeTo).map(closeElement));
         } else {
-          var interim = stack.pop();
+          var interim = stack.shift();
           return closeElement(interim);
         }
 
@@ -371,6 +371,8 @@ function InterimElementProvider() {
        * Special method to quick-remove the interim element without animations
        */
       function destroy() {
+        return $q.when(true);
+
         var interim = stack.shift();
 
         return interim ? interim.remove(SHOW_CANCELLED, false, {'$destroy':true}) :
