@@ -117,7 +117,7 @@ function mdListItemDirective($mdAria, $mdConstant, $mdUtil, $timeout) {
           container.append(tEl.contents());
           tEl.addClass('md-proxy-focus');
         } else {
-          container = angular.element('<md-button class="md-no-style"><div class="md-list-item-inner"></div></md-button>');
+          container = angular.element('<md-button class="md-no-style" type="button"><div class="md-list-item-inner"></div></md-button>');
           var copiedAttrs = ['ng-click', 'aria-label', 'ng-disabled'];
           angular.forEach(copiedAttrs, function(attr) {
             if (tEl[0].hasAttribute(attr)) {
