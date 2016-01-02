@@ -280,7 +280,7 @@ describe('$mdThemingProvider', function() {
       var hue1 = themingProvider._rgba(themingProvider._PALETTES.testPalette['300'].value, '0.3');
       var hue2 = themingProvider._rgba(themingProvider._PALETTES.testPalette['800'].value, '0.3');
       var hue3 = themingProvider._rgba(themingProvider._PALETTES.testPalette.A100.value, '0.3');
-      result = parse('.md-THEME_NAME-theme.md-primary { color: "{{primary-color-0.3}}"; }');
+      var result = parse('.md-THEME_NAME-theme.md-primary { color: "{{primary-color-0.3}}"; }');
       expect(result[0]).toEqual({content: 'color: ' + primary + ';', hue: null, type: 'primary'});
       expect(result[1]).toEqual({content: 'color: ' + hue1 + ';', hue: 'hue-1', type: 'primary'});
       expect(result[2]).toEqual({content: 'color: ' + hue2 + ';', hue: 'hue-2', type: 'primary'});
@@ -311,6 +311,64 @@ describe('$mdThemingProvider', function() {
 
 });
 
+describe('$mdThemeProvider with on-demand generation', function() {
+  var $mdTheming;
+
+  function getThemeStyleElements() {
+    return document.head.querySelectorAll('style[md-theme-style]');
+  }
+
+  function cleanThemeStyleElements() {
+    angular.forEach(getThemeStyleElements(), function(style) {
+      document.head.removeChild(style);
+    });
+  }
+
+  beforeEach(module('material.core', function($provide, $mdThemingProvider) {
+    // Theming requires that there is at least one element present in the document head.
+    cleanThemeStyleElements();
+
+    // Use a single simple style rule for which we can check presence / absense.
+    $provide.constant('$MD_THEME_CSS',
+        "sparkle.md-THEME_NAME-theme { color: '{{primary-color}}' }");
+
+    $mdThemingProvider.theme('sweden')
+        .primaryPalette('light-blue')
+        .accentPalette('yellow');
+
+    $mdThemingProvider.theme('belarus')
+        .primaryPalette('red')
+        .accentPalette('green');
+
+    $mdThemingProvider.generateThemesOnDemand(true);
+  }));
+
+  beforeEach(inject(function(_$mdTheming_) {
+    $mdTheming = _$mdTheming_;
+  }));
+
+  it('should not add any theme styles automatically', function() {
+    var styles = getThemeStyleElements();
+    expect(styles.length).toBe(0);
+  });
+
+  it('should add themes on-demand', function() {
+    $mdTheming.generateTheme('sweden');
+
+    var styles = getThemeStyleElements();
+    // One style tag for each default hue (default, hue-1, hue-2, hue-3).
+    expect(styles.length).toBe(4);
+    expect(document.head.innerHTML).toMatch(/md-sweden-theme/);
+    expect(document.head.innerHTML).not.toMatch(/md-belarus-theme/);
+
+    $mdTheming.generateTheme('belarus');
+    styles = getThemeStyleElements();
+    expect(styles.length).toBe(8);
+    expect(document.head.innerHTML).toMatch(/md-sweden-theme/);
+    expect(document.head.innerHTML).toMatch(/md-belarus-theme/);
+  });
+});
+
 describe('$mdTheming service', function() {
   var $mdThemingProvider;
   beforeEach(module('material.core', function(_$mdThemingProvider_) {
@@ -330,11 +388,6 @@ describe('$mdTheming service', function() {
     el = compileAndLink(testHtml);
   });
 
-
-  it('applies a default theme if no theme can be found', inject(function($mdTheming) {
-    $mdTheming(el);
-    expect(el.hasClass('md-default-theme')).toBe(true);
-  }));
 
   it('supports setting a different default theme', function() {
     $mdThemingProvider.setDefaultTheme('other');
@@ -359,8 +412,9 @@ describe('$mdTheming service', function() {
   }));
 
   it('provides the md-themable directive', function() {
+    $mdThemingProvider.setDefaultTheme('some');
     el = compileAndLink('<h1 md-themable></h1>');
-    expect(el.hasClass('md-default-theme')).toBe(true);
+    expect(el.hasClass('md-some-theme')).toBe(true);
   });
 
   it('can inherit from explicit parents', inject(function($rootScope, $mdTheming) {
@@ -395,7 +449,7 @@ describe('md-theme directive', function() {
   it('warns when an unregistered theme is used', function() {
     inject(function($log, $compile, $rootScope) {
       spyOn($log, 'warn');
-      var el = $compile('<div md-theme="unregistered"></div>')($rootScope);
+      $compile('<div md-theme="unregistered"></div>')($rootScope);
       $rootScope.$apply();
       expect($log.warn).toHaveBeenCalled();
     });
@@ -404,7 +458,7 @@ describe('md-theme directive', function() {
   it('does not warn when a registered theme is used', function() {
     inject(function($log, $compile, $rootScope) {
       spyOn($log, 'warn');
-      var el = $compile('<div md-theme="default"></div>')($rootScope);
+      $compile('<div md-theme="default"></div>')($rootScope);
       $rootScope.$apply();
       expect($log.warn.calls.count()).toBe(0);
     });
@@ -447,7 +501,7 @@ describe('md-themable directive', function() {
 
   it('should support watching parent theme by default', function() {
     $mdThemingProvider.alwaysWatchTheme(true);
-    inject(function($rootScope, $compile, $mdTheming) {
+    inject(function($rootScope, $compile) {
       $rootScope.themey = 'red';
       var el = $compile('<div md-theme="{{themey}}"><span md-themable></span></div>')($rootScope);
       $rootScope.$apply();
@@ -457,4 +511,14 @@ describe('md-themable directive', function() {
       expect(el.children().hasClass('md-red-theme')).toBe(true);
     });
   });
+
+  it('should not apply a class for an unnested default theme', inject(function($rootScope, $compile) {
+    var el = $compile('<div md-themable></div>')($rootScope);
+    expect(el.hasClass('md-default-theme')).toBe(false);
+  }));
+
+  it('should apply a class for a nested default theme', inject(function($rootScope, $compile) {
+    var el = $compile('<div md-theme="default" md-themable></div>')($rootScope);
+    expect(el.hasClass('md-default-theme')).toBe(true);
+  }));
 });

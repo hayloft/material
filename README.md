@@ -7,10 +7,7 @@ material design specification for use in Angular single-page applications (SPAs)
 
 ![venn diagram](https://cloud.githubusercontent.com/assets/210413/5077572/30dfc2f0-6e6a-11e4-9723-07c918128f4f.png)
 
-This project is in early pre-release. Angular Material is both a reference implementation of
-Material Design and a complementary effort to the [Polymer](https://www.polymer-project.org/)
-project's [Paper Elements](https://www.polymer-project.org/docs/elements/paper-elements.html)
-collection.
+For developers using AngularJS, Angular Material is the reference implementation of Google's Material Design Specification. This project implements version 1.x of Angular Material and includes a rich set of reusable, well-tested, and accessible UI components.
 
 Quick Links:
 
@@ -26,7 +23,7 @@ Material is targeted for all browsers with versions n-1; where n is the current 
 ## <a name="demos"></a> Online Documentation (and Demos)
 
 <div style="border: 1px solid #ccc">
-  <img src="https://cloud.githubusercontent.com/assets/1045233/6678772/12afad78-cbfc-11e4-8c9f-a13e336fb6a6.png" alt="Angular Material docs website" style="display:block;">
+  <img src="https://cloud.githubusercontent.com/assets/11819543/10056006/4aee3b68-6207-11e5-8497-a0656f85902a.PNG" alt="Angular Material docs website" style="display:block;">
 </div>
 
 - Visit [Material.AngularJS.org](https://material.angularjs.org/) online to review the API, see the
@@ -117,8 +114,8 @@ when using online tools such as [CodePen](http://codepen.io/), [Plunkr](http://p
 ```html
   <head>
 
-    <!-- Angular Material CSS now available via Google CDN; version 0.10 used here -->
-    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.0/angular-material.min.css">
+    <!-- Angular Material CSS now available via Google CDN; version 0.11.2 used here -->
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/0.11.2/angular-material.min.css">
 
   </head>
   <body>
@@ -129,8 +126,8 @@ when using online tools such as [CodePen](http://codepen.io/), [Plunkr](http://p
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.15/angular-aria.min.js"></script>
 
 
-    <!-- Angular Material Javascript now available via Google CDN; version 0.10 used here -->
-    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/0.10.0/angular-material.min.js"></script>
+    <!-- Angular Material Javascript now available via Google CDN; version 0.11.2 used here -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angular_material/0.11.2/angular-material.min.js"></script>
   </body>
 ```
 
@@ -158,5 +155,11 @@ pull directly from the distribution GitHub
     <script src="https://gitcdn.xyz/repo/angular/bower-material/master/angular-material.js"></script>
 
   </body>
+```
+
+Once you have all the necessary assets installed, add `ngMaterial` as a dependency for your app:
+
+```javascript
+angular.module('myApp', ['ngMaterial']);
 ```
 

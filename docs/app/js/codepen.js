@@ -6,7 +6,8 @@
   // Provides a service to open a code example in codepen.
   function Codepen($demoAngularScripts, $document, codepenDataAdapter) {
 
-    var CODEPEN_API = 'https://codepen.io/pen/define/';
+    // The following URL must be HTTP and not HTTPS to allow us to do localhost testing
+    var CODEPEN_API = 'http://codepen.io/pen/define/';
 
     return {
       editOnCodepen: editOnCodepen
@@ -48,9 +49,10 @@
   // additional fields not used by this service. http://blog.codepen.io/documentation/api/prefill
   function CodepenDataAdapter() {
 
-    var CORE_JS  = 'https://material.angularjs.org/HEAD/angular-material.js';   //'https://localhost:8080/angular-material.js';
-    var CORE_CSS = 'https://material.angularjs.org/HEAD/angular-material.css';  //'https://localhost:8080/angular-material.css';
-    var DOC_CSS  = 'https://material.angularjs.org/HEAD/docs.css';              // CSS overrides for custom docs
+    // The following URL's need to use `localhost` as these values get replaced during release
+    var CORE_JS  = 'http://localhost:8080/angular-material.js';
+    var CORE_CSS = 'http://localhost:8080/angular-material.css';
+    var DOC_CSS  = 'http://localhost:8080/docs.css';              // CSS overrides for custom docs
 
     var LINK_FONTS_ROBOTO = '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">';
 
@@ -156,8 +158,13 @@
     // module needs to match so that the $templateCache is populated with the necessary
     // assets.
     function replaceDemoModuleWithCodepenModule(file) {
-      var matchAngularModule =  /\.module\(('[^']*'|"[^"]*")\s*,(?:\s*\[([^\]]*)\])?/g;
-      return file.replace(matchAngularModule, ".module('MyApp'");
+      var matchAngularModule =  /\.module\(('[^']*'|"[^"]*")\s*,(\s*\[([^\]]*)\]\s*\))/ig;
+
+      // Include 'ngMessages' since the 'assets-cache.js' has the same dependencies
+      // angular.module('MyApp', ['ngMaterial', 'ngMessages'])
+      // See scripts.js for list of external Angular libraries used for the demos
+
+      return file.replace(matchAngularModule, ".module('MyApp',['ngMaterial', 'ngMessages'])");
     }
   }
 })();

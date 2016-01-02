@@ -1,21 +1,17 @@
 <div ng-controller="HomeCtrl" class="doc-content">
   <md-content>
     <h2 class="md-headline" style="margin-top: 0;">What is Angular Material?</h2>
-    <p>The Angular Material project is an implementation of Material Design in Angular.js. This project provides a set of reusable, well-tested, and accessible UI components based on the Material Design system.</p>
-    <p>Similar to the
-      <a href="http://www.polymer-project.org/">Polymer</a> project's
-      <a href="http://www.polymer-project.org/docs/elements/paper-elements.html">Paper elements</a> collection, Angular Material is supported internally at Google by the Angular.js, Material Design UX and other product teams.
-    </p>
+    <p>For developers using AngularJS, Angular Material is the reference implementation of Google's Material Design Specification. This project provides a set of reusable, well-tested, and accessible UI components based on Material Design.</p>
     <ul class="buckets" layout layout-align="center center" layout-wrap>
       <li flex="25" flex-md="50" flex-sm="50" ng-repeat="(index, link) in [
-        { href: 'getting-started', icon: 'school', text: 'Getting Started' },
-        { href: 'demo', icon: 'play_circle_fill', text: 'Demos' },
-        { href: 'CSS/typography', icon: 'build', text: 'Customization' },
-        { href: 'api', icon: 'code', text: 'API Reference' }
+        { href: './getting-started', icon: 'school', text: 'Getting Started' },
+        { href: './demo', icon: 'play_circle_fill', text: 'Demos' },
+        { href: './CSS/typography', icon: 'build', text: 'Customization' },
+        { href: './api', icon: 'code', text: 'API Reference' }
       ]">
         <md-button
             class="md-primary md-raised"
-            ng-href="#/{{link.href}}"
+            ng-href="{{link.href}}"
             aria-label="{{link.text}}">
           <md-icon class="block" md-svg-src="img/icons/ic_{{link.icon}}_24px.svg"></md-icon>
           {{link.text}}

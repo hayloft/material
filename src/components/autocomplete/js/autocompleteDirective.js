@@ -39,9 +39,9 @@ angular
  *     selected
  * @param {expression=} md-search-text-change An expression to be run each time the search text
  *     updates
- * @param {string=} md-search-text A model to bind the search query text to
+ * @param {expression=} md-search-text A model to bind the search query text to
  * @param {object=} md-selected-item A model to bind the selected item to
- * @param {string=} md-item-text An expression that will convert your object to a single string.
+ * @param {expression=} md-item-text An expression that will convert your object to a single string.
  * @param {string=} placeholder Placeholder text that will be forwarded to the input.
  * @param {boolean=} md-no-cache Disables the internal caching that happens in autocomplete
  * @param {boolean=} ng-disabled Determines whether or not to disable the input field
@@ -63,7 +63,7 @@ angular
  *     the item if the search text is an exact match
  *
  * @usage
- * ###Basic Example
+ * ### Basic Example
  * <hljs lang="html">
  *   <md-autocomplete
  *       md-selected-item="selectedItem"
@@ -74,7 +74,7 @@ angular
  *   </md-autocomplete>
  * </hljs>
  *
- * ###Example with "not found" message
+ * ### Example with "not found" message
  * <hljs lang="html">
  * <md-autocomplete
  *     md-selected-item="selectedItem"
@@ -150,11 +150,13 @@ function MdAutocomplete () {
     template:     function (element, attr) {
       var noItemsTemplate = getNoItemsTemplate(),
           itemTemplate    = getItemTemplate(),
-          leftover        = element.html();
+          leftover        = element.html(),
+          tabindex        = attr.tabindex;
 
-      if (noItemsTemplate) {
-        hasNotFoundTemplate = true;
-      }
+      // Set our variable for the link function above which runs later
+      hasNotFoundTemplate = noItemsTemplate ? true : false;
+
+      if (!attr.hasOwnProperty('tabindex')) element.attr('tabindex', '-1');
 
       return '\
         <md-autocomplete-wrap\
@@ -163,20 +165,22 @@ function MdAutocomplete () {
             role="listbox">\
           ' + getInputElement() + '\
           <md-progress-linear\
+              class="' + (attr.mdFloatingLabel ? 'md-inline' : '') + '"\
               ng-if="$mdAutocompleteCtrl.loadingIsVisible()"\
               md-mode="indeterminate"></md-progress-linear>\
           <md-virtual-repeat-container\
               md-auto-shrink\
               md-auto-shrink-min="1"\
+              ng-mouseenter="$mdAutocompleteCtrl.listEnter()"\
+              ng-mouseleave="$mdAutocompleteCtrl.listLeave()"\
+              ng-mouseup="$mdAutocompleteCtrl.mouseUp()"\
               ng-hide="$mdAutocompleteCtrl.hidden"\
               class="md-autocomplete-suggestions-container md-whiteframe-z1"\
+              ng-class="{ \'md-not-found\': $mdAutocompleteCtrl.notFoundVisible() }"\
               role="presentation">\
             <ul class="md-autocomplete-suggestions"\
                 ng-class="::menuClass"\
-                id="ul-{{$mdAutocompleteCtrl.id}}"\
-                ng-mouseenter="$mdAutocompleteCtrl.listEnter()"\
-                ng-mouseleave="$mdAutocompleteCtrl.listLeave()"\
-                ng-mouseup="$mdAutocompleteCtrl.mouseUp()">\
+                id="ul-{{$mdAutocompleteCtrl.id}}">\
               <li md-virtual-repeat="item in $mdAutocompleteCtrl.matches"\
                   ng-class="{ selected: $index === $mdAutocompleteCtrl.index }"\
                   ng-click="$mdAutocompleteCtrl.select($index)"\
@@ -216,6 +220,7 @@ function MdAutocomplete () {
             <md-input-container flex ng-if="floatingLabel">\
               <label>{{floatingLabel}}</label>\
               <input type="search"\
+                  ' + (tabindex != null ? 'tabindex="' + tabindex + '"' : '') + '\
                   id="{{ inputId || \'fl-input-\' + $mdAutocompleteCtrl.id }}"\
                   name="{{inputName}}"\
                   autocomplete="off"\
@@ -238,6 +243,7 @@ function MdAutocomplete () {
         } else {
           return '\
             <input flex type="search"\
+                ' + (tabindex != null ? 'tabindex="' + tabindex + '"' : '') + '\
                 id="{{ inputId || \'input-\' + $mdAutocompleteCtrl.id }}"\
                 name="{{inputName}}"\
                 ng-if="!floatingLabel"\
