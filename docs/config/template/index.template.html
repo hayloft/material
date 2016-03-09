@@ -1,5 +1,5 @@
 <!doctype html>
-<html ng-app="docsApp" ng-controller="DocsCtrl" lang="en" ng-strict-di>
+<html ng-app="docsApp" ng-controller="DocsCtrl" lang="en" ng-strict-di >
 <head>
 <base href="/">
 <title ng-bind="'Angular Material - ' + menu.currentSection.name +
@@ -12,10 +12,10 @@
 <link rel="stylesheet" href="angular-material.min.css">
 <link rel="stylesheet" href="docs.css">
 </head>
-<body layout="row" ng-cloak>
+<body class="docs-body" layout="row" ng-cloak>
 
   <md-sidenav class="site-sidenav md-sidenav-left md-whiteframe-z2"
-              md-component-id="left"
+              md-component-id="left" hide-print
               md-is-locked-open="$mdMedia('gt-sm')">
 
     <header class="nav-header">
@@ -65,7 +65,7 @@
             <span ng-if="menu.currentPage.name !== menu.currentSection.name">
               <span hide-sm hide-md>{{menu.currentSection.name}}</span>
               <span class="docs-menu-separator-icon" hide-sm hide-md style="transform: translate3d(0, 1px, 0)">
-                <span class="md-visually-hidden">-</span>
+                <span class="_md-visually-hidden">-</span>
                 <md-icon
                     aria-hidden="true"
                     md-svg-src="img/icons/ic_chevron_right_24px.svg"
@@ -159,7 +159,7 @@
       <div layout="row" flex="noshrink">
         <div id="license-footer">
           Powered by Google &copy;2014&#8211;{{thisYear}}.
-          Code licensed under the <a href="/license">MIT License</a>.
+          Code licensed under the <a href="./license">MIT License</a>.
           Documentation licensed under
           <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
         </div>
