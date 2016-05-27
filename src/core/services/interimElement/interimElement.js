@@ -324,13 +324,16 @@ function InterimElementProvider() {
         options = options || {};
 
         if (options.closeAll) {
+          console.log('ccccccc');
           var promise = $q.all(stack.reverse().map(closeElement));
           stack = [];
           return promise;
         } else if (options.closeTo !== undefined) {
+          console.log('bbbbbb');
           return $q.all(stack.splice(options.closeTo).map(closeElement));
         } else {
-          var interim = stack.shift();
+          console.log('aaaaaa');
+          var interim = stack.pop();
           return closeElement(interim);
         }
 
@@ -358,7 +361,7 @@ function InterimElementProvider() {
        *
        */
       function cancel(reason, options) {
-        var interim = stack.pop();
+        var interim = stack.shift();
         if ( !interim ) return $q.when(reason);
 
         interim

@@ -879,6 +879,7 @@ function MdDialogProvider($$interimElementProvider) {
 
       if (options.hasBackdrop) {
         options.backdrop = $mdUtil.createBackdrop(scope, "_md-dialog-backdrop md-opaque");
+        options.backdrop.css('z-index', 80 + options.stack.length);
         $animate.enter(options.backdrop, options.parent);
       }
 
@@ -1039,6 +1040,8 @@ function MdDialogProvider($$interimElementProvider) {
       if (options.fullscreen) {
         dialogEl.addClass('md-dialog-fullscreen');
       }
+
+      dialogEl.parent().css('z-index', 80 + options.stack.length);
 
       return animator
         .translate3d(dialogEl, from, to, translateOptions)
