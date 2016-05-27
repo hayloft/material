@@ -86,6 +86,7 @@ angular.module('material.core')
  * </hljs>
  */
 
+/* @ngInject */
 function mdMediaFactory($mdConstant, $rootScope, $window) {
   var queries = {};
   var mqls = {};

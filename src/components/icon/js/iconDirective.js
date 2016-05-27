@@ -1,6 +1,6 @@
 angular
   .module('material.components.icon')
-  .directive('mdIcon', ['$mdIcon', '$mdTheming', '$mdAria', '$compile', mdIconDirective]);
+  .directive('mdIcon', ['$mdIcon', '$mdTheming', '$mdAria', '$sce', '$compile', mdIconDirective]);
 
 /**
  * @ngdoc directive
@@ -143,11 +143,16 @@ angular
  *
  * When using Material Font Icons with ligatures:
  * <hljs lang="html">
- *  <!-- For Material Design Icons -->
- *  <!-- The class '.material-icons' is auto-added if a style has NOT been specified -->
+ *  <!--
+ *  For Material Design Icons
+ *  The class '.material-icons' is auto-added if a style has NOT been specified
+ *  since `material-icons` is the default fontset. So your markup:
+ *  -->
  *  <md-icon> face </md-icon>
+ *  <!-- becomes this at runtime: -->
  *  <md-icon md-font-set="material-icons"> face </md-icon>
- *  <md-icon> #xE87C; </md-icon>
+ *  <!-- If the fontset does not support ligature names, then we need to use the ligature unicode.-->
+ *  <md-icon> &#xE87C; </md-icon>
  *  <!-- The class '.material-icons' must be manually added if other styles are also specified-->
  *  <md-icon class="material-icons md-light md-48"> face </md-icon>
  * </hljs>
@@ -157,25 +162,18 @@ angular
  * <hljs lang="js">
  *  // Specify a font-icon style alias
  *  angular.config(function($mdIconProvider) {
- *    $mdIconProvider.fontSet('fa', 'fontawesome');
+ *    $mdIconProvider.fontSet('md', 'material-icons');
  *  });
  * </hljs>
  *
  * <hljs lang="html">
- *  <md-icon md-font-set="fa">email</md-icon>
+ *  <md-icon md-font-set="md">favorite</md-icon>
  * </hljs>
  *
  */
-function mdIconDirective($mdIcon, $mdTheming, $mdAria, $compile ) {
+function mdIconDirective($mdIcon, $mdTheming, $mdAria, $sce) {
 
   return {
-    scope: {
-      fontSet : '@mdFontSet',
-      fontIcon: '@mdFontIcon',
-      value: '@mdValue',
-      svgIcon : '@mdSvgIcon',
-      svgSrc  : '@mdSvgSrc'
-    },
     restrict: 'E',
     link : postLink
   };
@@ -196,15 +194,19 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $compile ) {
 
     prepareForFontIcon();
 
+    // Keep track of the content of the svg src so we can compare against it later to see if the
+    // attribute is static (and thus safe).
+    var originalSvgSrc = element[0].getAttribute(attr.$attr.mdSvgSrc);
+
     // If using a font-icon, then the textual name of the icon itself
     // provides the aria-label.
 
-    var label = attr.alt || scope.fontIcon || scope.svgIcon || element.text();
+    var label = attr.alt || attr.mdFontIcon || attr.mdSvgIcon || element.text();
     var attrName = attr.$normalize(attr.$attr.mdSvgIcon || attr.$attr.mdSvgSrc || '');
 
     if ( !attr['aria-label'] ) {
 
-      if (label != '' && !parentsHaveText() ) {
+      if (label !== '' && !parentsHaveText() ) {
 
         $mdAria.expect(element, 'aria-label', label);
         $mdAria.expect(element, 'role', 'img');
@@ -220,6 +222,12 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $compile ) {
     if (attrName) {
       // Use either pre-configured SVG or URL source, respectively.
       attr.$observe(attrName, function(attrVal) {
+
+        // If using svg-src and the value is static (i.e., is exactly equal to the compile-time
+        // `md-svg-src` value), then it is implicitly trusted.
+        if (!isInlineSvg(attrVal) && attrVal === originalSvgSrc) {
+          attrVal = $sce.trustAsUrl(attrVal);
+        }
 
         element.empty();
         if (attrVal) {
@@ -245,12 +253,22 @@ function mdIconDirective($mdIcon, $mdTheming, $mdAria, $compile ) {
     }
 
     function prepareForFontIcon() {
-      if (!scope.svgIcon && !scope.svgSrc) {
-        if (scope.fontIcon) {
-          element.addClass('md-font ' + scope.fontIcon);
+      if (!attr.mdSvgIcon && !attr.mdSvgSrc) {
+        if (attr.mdFontIcon) {
+          element.addClass('md-font ' + attr.mdFontIcon);
         }
-        element.addClass($mdIcon.fontSet(scope.fontSet));
+        element.addClass($mdIcon.fontSet(attr.mdFontSet));
       }
     }
+  }
+
+  /**
+   * Gets whether the given svg src is an inline ("data:" style) SVG.
+   * @param {string} svgSrc The svg src.
+   * @returns {boolean} Whether the src is an inline SVG.
+   */
+  function isInlineSvg(svgSrc) {
+    var dataUrlRegex = /^data:image\/svg\+xml[\s*;\w\-\=]*?(base64)?,(.*)$/i;
+    return dataUrlRegex.test(svgSrc);
   }
 }

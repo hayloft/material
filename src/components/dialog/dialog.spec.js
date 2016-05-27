@@ -24,6 +24,13 @@ describe('$mdDialog', function() {
     };
   }));
 
+  describe('md-dialog', function() {
+    it('should have `._md` class indicator', inject(function($compile, $rootScope) {
+      var element = $compile('<md-dialog></md-dialog>')($rootScope.$new());
+      expect(element.hasClass('_md')).toBe(true);
+    }));
+  });
+
   describe('#alert()', function() {
     hasConfigurationMethods('alert', [
       'title', 'htmlContent', 'textContent', 'ariaLabel',
@@ -161,6 +168,27 @@ describe('$mdDialog', function() {
       expect(content.id).toBe('dialogContent_' + dialog[0].id);
     }));
 
+    it('should not clobber the id from `md-dialog` when there is no content', inject(function ($mdDialog, $rootScope, $document) {
+      jasmine.mockElementFocus(this);
+
+      var parent = angular.element('<div>');
+
+      $mdDialog.show(
+        $mdDialog.alert({
+          template: '<md-dialog id="demoid">' +
+          '<p>Muppets are the best</p>' +
+          '</md-dialog>',
+          parent: parent
+        })
+      );
+
+      runAnimation();
+
+      var dialog = parent.find('md-dialog');
+
+      expect(dialog[0].id).toBe('demoid');
+    }));
+
     it('should apply a prefixed id for `md-dialog-content`', inject(function ($mdDialog, $rootScope, $document) {
       jasmine.mockElementFocus(this);
 
@@ -181,8 +209,8 @@ describe('$mdDialog', function() {
 
       var dialog = parent.find('md-dialog');
       var content = parent[0].querySelector('md-dialog-content');
-
-      expect(content.id).toMatch(/dialogContent_.*/g);
+      
+      expect(content.id).toMatch(/dialogContent_[0-9]+/g);
     }));
 
     it('should remove `md-dialog-container` on mousedown mouseup and remove', inject(function($mdDialog, $rootScope, $timeout) {
@@ -790,7 +818,7 @@ describe('$mdDialog', function() {
 
       it('should not wrap raw content with md-dialog', inject(function($mdDialog, $rootScope) {
 
-        var template = '<div id="rawContent">Hello</div>';
+        var template = '<md-dialog id="rawContent">Hello</md-dialog>';
         var parent = angular.element('<div>');
 
         $mdDialog.show({
@@ -802,7 +830,7 @@ describe('$mdDialog', function() {
         $rootScope.$apply();
 
         var container = parent[0].querySelectorAll('md-dialog');
-        expect(container.length).toBe(0);
+        expect(container.length).toBe(1); // Should not have two dialogs; but one is required
       }));
     });
 
@@ -1001,142 +1029,6 @@ describe('$mdDialog', function() {
       expect($document.activeElement).toBe(undefined);
     }));
 
-    xit('should expand from and shrink to targetEvent element', inject(function($mdDialog, $rootScope, $timeout, $mdConstant, $$rAF) {
-      // Create a targetEvent parameter pointing to a fake element with a
-      // defined bounding rectangle.
-      var fakeEvent = {
-        target: {
-          getBoundingClientRect: function() {
-            return {top: 100, left: 200, bottom: 140, right: 280, height: 40, width: 80};
-          }
-        }
-      };
-      var parent = angular.element('<div>');
-      $mdDialog.show({
-        template: '<md-dialog>',
-        parent: parent,
-        targetEvent: fakeEvent,
-        clickOutsideToClose: true
-      });
-      $rootScope.$apply();
-
-      var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      var dialog = parent.find('md-dialog');
-
-      $$rAF.flush();
-
-      // The dialog's bounding rectangle is always zero size and position in
-      // these tests, so the target of the CSS transform should be the midpoint
-      // of the targetEvent element's bounding rect.
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(240px, 120px, 0px) scale(0.5, 0.5)');
-
-      // Clear the animation CSS so we can be sure it gets reset.
-      dialog.css($mdConstant.CSS.TRANSFORM, '');
-
-      // When the dialog is closed (here by an outside click), the animation
-      // should shrink to the same point it expanded from.
-      container.triggerHandler({
-        type: 'click',
-        target: container[0]
-      });
-      runAnimation();
-
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(240px, 120px, 0px) scale(0.5, 0.5)');
-    }));
-
-    xit('should shrink to updated targetEvent element location', inject(function($mdDialog, $rootScope, $timeout, $mdConstant) {
-      // Create a targetEvent parameter pointing to a fake element with a
-      // defined bounding rectangle.
-      var fakeEvent = {
-        target: {
-          getBoundingClientRect: function() {
-            return {top: 100, left: 200, bottom: 140, right: 280, height: 40, width: 80};
-          }
-        }
-      };
-
-      var parent = angular.element('<div>');
-      $mdDialog.show({
-        template: '<md-dialog>',
-        parent: parent,
-        targetEvent: fakeEvent,
-        clickOutsideToClose: true
-      });
-      $rootScope.$apply();
-
-      var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      var dialog = parent.find('md-dialog');
-
-      triggerTransitionEnd(dialog, false);
-
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(240px, 120px, 0px) scale(0.5, 0.5)');
-
-      // Simulate the event target element moving on the page. When the dialog
-      // is closed, it should animate to the new midpoint.
-      fakeEvent.target.getBoundingClientRect = function() {
-        return {top: 300, left: 400, bottom: 360, right: 500, height: 60, width: 100};
-      };
-      container.triggerHandler({
-        type: 'click',
-        target: container[0]
-      });
-      $timeout.flush();
-
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(450px, 330px, 0px) scale(0.5, 0.5)');
-    }));
-
-    xit('should shrink to original targetEvent element location if element is hidden', inject(function($mdDialog, $rootScope, $timeout, $mdConstant) {
-      // Create a targetEvent parameter pointing to a fake element with a
-      // defined bounding rectangle.
-      var fakeEvent = {
-        target: {
-          getBoundingClientRect: function() {
-            return {top: 100, left: 200, bottom: 140, right: 280, height: 40, width: 80};
-          }
-        }
-      };
-
-      var parent = angular.element('<div>');
-      $mdDialog.show({
-        template: '<md-dialog>',
-        parent: parent,
-        targetEvent: fakeEvent,
-        clickOutsideToClose: true
-      });
-      $rootScope.$apply();
-
-      var container = angular.element(parent[0].querySelector('.md-dialog-container'));
-      var dialog = parent.find('md-dialog');
-
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(240px, 120px, 0px) scale(0.5, 0.5)');
-
-      triggerTransitionEnd(dialog, false);
-
-      // Clear the animation CSS so we can be sure it gets reset.
-      dialog.css($mdConstant.CSS.TRANSFORM, '');
-
-      // Simulate the event target element being hidden, which would cause
-      // getBoundingClientRect() to return a rect with zero position and size.
-      // When the dialog is closed, the animation should shrink to the point
-      // it originally expanded from.
-      fakeEvent.target.getBoundingClientRect = function() {
-        return {top: 0, left: 0, bottom: 0, right: 0, height: 0, width: 0};
-      };
-      container.triggerHandler({
-        type: 'click',
-        target: container[0]
-      });
-      $timeout.flush();
-
-      verifyTransformCss(dialog, $mdConstant.CSS.TRANSFORM,
-        'translate3d(240px, 120px, 0px) scale(0.5, 0.5)');
-    }));
-
     it('should focus the last `md-button` in md-dialog-actions open if no `.dialog-close`', inject(function($mdDialog, $rootScope, $document, $timeout, $mdConstant) {
       jasmine.mockElementFocus(this);
 
@@ -1255,6 +1147,101 @@ describe('$mdDialog', function() {
       expect(parent[0].querySelectorAll('md-dialog.one').length).toBe(0);
       expect(parent[0].querySelectorAll('md-dialog.two').length).toBe(0);
     }));
+
+    describe('contentElement', function() {
+      var $mdDialog, $rootScope, $compile, $timeout;
+
+      beforeEach(inject(function($injector) {
+        $mdDialog = $injector.get('$mdDialog');
+        $rootScope = $injector.get('$rootScope');
+        $compile = $injector.get('$compile');
+        $timeout = $injector.get('$timeout');
+      }));
+
+      it('should correctly move the contentElement', function() {
+        var contentElement = $compile(
+          '<div class="md-dialog-container">' +
+            '<md-dialog>Dialog</md-dialog>' +
+          '</div>'
+        )($rootScope);
+        var parentEl = angular.element('<div>');
+
+        // Add the contentElement to the DOM.
+        document.body.appendChild(contentElement[0]);
+
+        $mdDialog.show({
+          contentElement: contentElement,
+          parent: parentEl,
+          escapeToClose: true
+        });
+
+        $rootScope.$apply();
+        runAnimation();
+
+        expect(contentElement[0].parentNode).toBe(parentEl[0]);
+
+        $mdDialog.hide();
+        runAnimation();
+
+        expect(contentElement[0].parentNode).toBe(document.body);
+
+        document.body.removeChild(contentElement[0]);
+      });
+
+      it('should correctly query for a contentElement', function() {
+        var contentElement = $compile(
+          '<div class="md-dialog-container" id="myId">' +
+            '<md-dialog>Dialog</md-dialog>' +
+          '</div>'
+        )($rootScope);
+        var parentEl = angular.element('<div>');
+
+        // Add the contentElement to the DOM.
+        document.body.appendChild(contentElement[0]);
+
+        $mdDialog.show({
+          contentElement: '#myId',
+          parent: parentEl,
+          escapeToClose: true
+        });
+
+        $rootScope.$apply();
+        runAnimation();
+
+        expect(contentElement[0].parentNode).toBe(parentEl[0]);
+
+        $mdDialog.hide();
+        runAnimation();
+
+        expect(contentElement[0].parentNode).toBe(document.body);
+
+        document.body.removeChild(contentElement[0]);
+      });
+
+      it('should also work with a virtual pre-compiled element', function() {
+        var contentElement = $compile(
+          '<div class="md-dialog-container" id="myId">' +
+          '<md-dialog>Dialog</md-dialog>' +
+          '</div>'
+        )($rootScope);
+        var parentEl = angular.element('<div>');
+
+        $mdDialog.show({
+          contentElement: contentElement,
+          parent: parentEl,
+          escapeToClose: true
+        });
+
+        $rootScope.$apply();
+        runAnimation();
+
+        expect(contentElement[0].parentNode).toBe(parentEl[0]);
+
+        $mdDialog.hide();
+        runAnimation();
+      });
+
+    });
 
     it('should have the dialog role', inject(function($mdDialog, $rootScope) {
       var template = '<md-dialog>Hello</md-dialog>';

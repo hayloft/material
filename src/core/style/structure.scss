@@ -1,7 +1,5 @@
 html, body {
   height: 100%;
-  color: rgba(0,0,0,0.87);
-  background: white;
   position: relative;
 }
 
@@ -17,6 +15,7 @@ body {
   padding: 10px;
 }
 
+a._md-no-style,
 button._md-no-style {
   font-weight: normal;
   background-color: inherit;

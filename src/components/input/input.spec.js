@@ -160,6 +160,20 @@ describe('md-input-container directive', function() {
     expect(el).not.toHaveClass('md-input-focused');
   });
 
+  it('should skip a hidden input', function() {
+    var container = setup('type="hidden"');
+    var controller = container.controller('mdInputContainer');
+    var textInput = angular.element('<input type="text">');
+
+    expect(controller.input).toBeUndefined();
+
+    container.append(textInput);
+    $compile(textInput)(pageScope);
+
+    expect(controller.input[0]).toBe(textInput[0]);
+  });
+
+
   it('should set has-value class on container for non-ng-model input', function() {
     var el = setup();
     expect(el).not.toHaveClass('md-input-has-value');
@@ -422,7 +436,60 @@ describe('md-input-container directive', function() {
     expect(el[0].querySelector("[ng-messages]").classList.contains('md-auto-hide')).toBe(false);
   }));
 
-  it('should select the input value on focus', inject(function() {
+  it('should set the animation class on the ngMessage properly', inject(function() {
+    var element = compile(
+      '<md-input-container>' +
+        '<input ng-model="inputVal">' +
+        '<div ng-messages>' +
+          '<ng-message id="requiredMessage" when="required">Field required</ng-message>' +
+        '</div>' +
+      '</md-input-container>'
+    );
+
+    var ngMessage = element.find('ng-message');
+    expect(ngMessage).toHaveClass('md-input-message-animation');
+  }));
+
+  it('should set the animation class on a transcluded ngMessage', function() {
+    // We can emulate the transclusion, by wrapping the ngMessage inside of a document fragment.
+    // It is not necessary to add a *extra* component / directive for that, since we just
+    // want to the test the DocumentFragment detection.
+    var fragment = document.createDocumentFragment();
+
+    var inputContainer = compile(
+      '<md-input-container>' +
+        '<input ng-model="inputVal">' +
+        '<div ng-messages id="messageInsertion">' +
+        '</div>' +
+      '</md-input-container>'
+    );
+
+    // We build our element, without compiling and linking it.
+    // Because we invoke those steps manually during the tests.
+    var messageElement = angular.element(
+      '<ng-message id="requiredMessage" when="required">Field Required</ng-message>'
+    );
+
+    fragment.appendChild(messageElement[0]);
+
+    // Only compile the element at this time, and link it to its scope later.
+    // Normally the directive will add the animation class upon compile.
+    var linkFn = $compile(messageElement);
+
+    expect(messageElement).not.toHaveClass('md-input-message-animation');
+
+    // Now we emulate the finish of the transclusion.
+    // We move the element from the fragment into the correct input
+    // container.
+    inputContainer[0].appendChild(messageElement[0]);
+
+    // Manually invoke the postLink function of the directive.
+    linkFn($rootScope.$new());
+
+    expect(messageElement).toHaveClass('md-input-message-animation');
+  });
+
+  it('should select the input value on focus', inject(function($timeout) {
     var container = setup('md-select-on-focus');
     var input = container.find('input');
     input.val('Auto Text Select');
@@ -438,7 +505,9 @@ describe('md-input-container directive', function() {
     document.body.removeChild(container[0]);
 
     function isTextSelected(input) {
-      return input.selectionStart == 0 && input.selectionEnd == input.value.length
+      // The selection happens in a timeout which needs to be flushed.
+      $timeout.flush();
+      return input.selectionStart === 0 && input.selectionEnd == input.value.length;
     }
   }));
 
@@ -510,6 +579,22 @@ describe('md-input-container directive', function() {
       $timeout.flush();
       var newHeight = textarea.offsetHeight;
       expect(textarea.offsetHeight).toBeGreaterThan(oldHeight);
+    });
+
+    it('should make the textarea scrollable once it has reached the row limit', function() {
+      var scrollableClass = '_md-textarea-scrollable';
+
+      createAndAppendElement('rows="2"');
+
+      ngTextarea.val('Single line of text');
+      ngTextarea.triggerHandler('input');
+
+      expect(ngTextarea.hasClass(scrollableClass)).toBe(false);
+
+      ngTextarea.val('Multiple\nlines\nof\ntext');
+      ngTextarea.triggerHandler('input');
+
+      expect(ngTextarea.hasClass(scrollableClass)).toBe(true);
     });
   });
 
