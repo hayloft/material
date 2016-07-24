@@ -289,14 +289,14 @@ function InterimElementProvider() {
         // When an interim element is currently showing, we have to cancel it.
         // Just hiding it, will resolve the InterimElement's promise, the promise should be
         // rejected instead.
-        var hideExisting = !options.skipHide && stack.length ? service.cancel() : $q.when(true);
+        //var hideExisting = !options.skipHide && stack.length ? service.cancel() : $q.when(true);
 
         // This hide()s only the current interim element before showing the next, new one
         // NOTE: this is not reversible (e.g. interim elements are not stackable)
 
-        hideExisting.finally(function() {
+        //hideExisting.finally(function() {
 
-          stack.push(interimElement);
+          stack.unshift(interimElement);
           interimElement
             .show()
             .catch(function( reason ) {
@@ -304,7 +304,7 @@ function InterimElementProvider() {
               return reason;
             });
 
-        });
+        //});
 
         // Return a promise that will be resolved when the interim
         // element is hidden or cancelled...
@@ -335,7 +335,7 @@ function InterimElementProvider() {
         } else if (options.closeTo !== undefined) {
           return $q.all(stack.splice(options.closeTo).map(closeElement));
         } else {
-          var interim = stack.pop();
+          var interim = stack.shift();
           return closeElement(interim);
         }
 
@@ -363,7 +363,7 @@ function InterimElementProvider() {
        *
        */
       function cancel(reason, options) {
-        var interim = stack.pop();
+        var interim = stack.shift();
         if ( !interim ) return $q.when(reason);
 
         interim
@@ -413,6 +413,9 @@ function InterimElementProvider() {
         var self, element, showAction = $q.when(true);
 
         options = configureScopeAndTransitions(options);
+
+        options.interimElement = self;
+        options.stack = stack;
 
         return self = {
           options : options,
