@@ -326,51 +326,175 @@ describe('$$mdDateUtil', function() {
   });
 
   it('should return true when a date is in range', function() {
-    var date = new Date('2015-05-02');
-    var minDate = new Date('2015-05-01');
-    var maxDate = new Date('2015-05-03');
+    var date = new Date(2015, JUN, 2);
+    var minDate = new Date(2015, JUN, 1);
+    var maxDate = new Date(2015, JUN, 3);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeTruthy();
   });
 
   it('should return false when a date is before the range', function() {
-    var date = new Date('2015-04-29');
-    var minDate = new Date('2015-05-01');
-    var maxDate = new Date('2015-05-03');
+    var date = new Date(2015, MAY, 29);
+    var minDate = new Date(2015, JUN, 1);
+    var maxDate = new Date(2015, JUN, 3);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeFalsy();
   });
 
   it('should return false when a date is after the range', function() {
-    var date = new Date('2015-05-05');
-    var minDate = new Date('2015-05-01');
-    var maxDate = new Date('2015-05-03');
+    var date = new Date(2015, JUN, 5);
+    var minDate = new Date(2015, JUN, 1);
+    var maxDate = new Date(2015, JUN, 3);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeFalsy();
   });
 
   it('should set the time to midnight before checking the min date', function() {
-    var date = new Date('2015-05-01T11:00:00');
-    var minDate = new Date('2015-05-01T12:00:00');
-    var maxDate = new Date('2015-05-03');
+    var date = new Date(2015, JUN, 1, 11, 0, 0);
+    var minDate = new Date(2015, JUN, 1, 0, 0, 0);
+    var maxDate = new Date(2015, JUN, 3);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeTruthy();
   });
 
   it('should set the time to midnight before checking the max date', function() {
-    var date = new Date('2015-05-03T13:00:00');
-    var minDate = new Date('2015-05-01');
-    var maxDate = new Date('2015-05-03T12:00:00');
+    var date = new Date(2015, JUN, 3, 13, 0, 0);
+    var minDate = new Date(2015, 5, 1);
+    var maxDate = new Date(2015, JUN, 3, 12, 0, 0);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeTruthy();
   });
 
   it('should ignore an invalid minDate when checking if the date is in range', function() {
-    var date = new Date('2015-05-02');
+    var date = new Date(2015, JUN, 2);
     var minDate = null;
-    var maxDate = new Date('2015-05-03');
+    var maxDate = new Date(2015, JUN, 3);
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeTruthy();
   });
 
   it('should ignore an invalid maxDate when checking if the date is in range', function() {
-    var date = new Date('2015-05-02');
-    var minDate = new Date('2015-05-01');
+    var date = new Date(2015, JUN, 2);
+    var minDate = new Date(2015, JUN, 1);
     var maxDate = null;
     expect(dateUtil.isDateWithinRange(date, minDate, maxDate)).toBeTruthy();
+  });
+
+  it('should increment a date by a number of years', function() {
+    // Increment by one.
+    var start = new Date(2015, MAY, 15);
+    var end = new Date(2016, MAY, 15);
+    expect(dateUtil.isSameDay(dateUtil.incrementYears(start, 1), end)).toBe(true);
+
+    // Negative by negative one.
+    start = new Date(2015, MAY, 15);
+    end = new Date(2014, MAY, 15);
+    expect(dateUtil.isSameDay(dateUtil.incrementYears(start, -1), end)).toBe(true);
+  });
+
+  it('should get the distance between years', function() {
+    // In the future
+    var start = new Date(2016, JAN, 15);
+    var end = new Date(2017, JUN, 15);
+    expect(dateUtil.getYearDistance(start, end)).toBe(1);
+
+    // In the past
+    start = new Date(2016, JAN, 15);
+    end = new Date(2014, JUN, 15);
+    expect(dateUtil.getYearDistance(start, end)).toBe(-2);
+  });
+
+  it('should limit a date between a minimum and a maximum', function() {
+    var min = new Date(2016, MAY, 1);
+    var max = new Date(2016, JUN, 1);
+
+    // Before the minimum
+    var target = new Date(2016, APR, 1);
+    expect(dateUtil.isSameDay(dateUtil.clampDate(target, min, max), min)).toBe(true);
+
+    // After the maximum
+    target = new Date(2016, AUG, 1);
+    expect(dateUtil.isSameDay(dateUtil.clampDate(target, min, max), max)).toBe(true);
+
+    // Within range
+    target = new Date(2016, MAY, 15);
+    expect(dateUtil.clampDate(target, min, max)).toBe(target);
+  });
+
+  it('should parse the timestamp from a DOM node', function() {
+    var node = document.createElement('td');
+
+    // With no arguments
+    expect(function() {
+      dateUtil.getTimestampFromNode();
+    }).not.toThrow();
+
+    // Without a timestamp
+    expect(dateUtil.getTimestampFromNode(node)).toBeFalsy();
+
+    // With a timestamp
+    var time = new Date().getTime();
+    node.setAttribute('data-timestamp', time);
+    var result = dateUtil.getTimestampFromNode(node);
+
+    expect(angular.isNumber(result)).toBe(true);
+    expect(result).toBe(time);
+
+    node = null;
+  });
+
+  describe('isMonthWithinRange method', function() {
+    it('should return true when a month is in range', function() {
+      var date = new Date(2015, JUN, 1);
+      var minDate = new Date(2015, MAY, 1);
+      var maxDate = new Date(2015, JUL, 1);
+      expect(dateUtil.isMonthWithinRange(date, minDate, maxDate)).toBeTruthy();
+    });
+
+    it('should return false when a month is before the range', function() {
+      var date = new Date(2015, MAY, 1);
+      var minDate = new Date(2015, JUN, 1);
+      var maxDate = new Date(2015, JUL, 1);
+      expect(dateUtil.isMonthWithinRange(date, minDate, maxDate)).toBeFalsy();
+    });
+
+    it('should return false when a month is after the range', function() {
+      var date = new Date(2015, AUG, 1);
+      var minDate = new Date(2015, JUN, 1);
+      var maxDate = new Date(2015, JUL, 1);
+      expect(dateUtil.isMonthWithinRange(date, minDate, maxDate)).toBeFalsy();
+    });
+
+    it('should ignore an invalid minDate when checking if the month is in range', function() {
+      var date = new Date(2015, JUN, 1);
+      var minDate = null;
+      var maxDate = new Date(2015, JUL, 1);
+      expect(dateUtil.isMonthWithinRange(date, minDate, maxDate)).toBeTruthy();
+    });
+
+    it('should ignore an invalid maxDate when checking if the month is in range', function() {
+      var date = new Date(2015, JUN, 1);
+      var minDate = new Date(2015, JUN, 1);
+      var maxDate = null;
+      expect(dateUtil.isMonthWithinRange(date, minDate, maxDate)).toBeTruthy();
+    });
+
+    it('should take the year into account when comparing with the min date', function() {
+      var date = new Date(2015, MAR, 1);
+      var minDate = new Date(2014, JUN, 1);
+      expect(dateUtil.isMonthWithinRange(date, minDate)).toBeTruthy();
+    });
+
+    it('should take the year into account when comparing with the max date', function() {
+      var date = new Date(2015, JUL, 1);
+      var maxDate = new Date(2016, FEB, 1);
+      expect(dateUtil.isMonthWithinRange(date, null, maxDate)).toBeTruthy();
+    });
+
+    it('should return true, even though parts of the month are before the minDate', function() {
+      var date = new Date(2015, MAY, 1);
+      var minDate = new Date(2015, MAY, 20);
+      expect(dateUtil.isMonthWithinRange(date, minDate)).toBeTruthy();
+    });
+
+    it('should return true, even though parts of the month are after the maxDate', function() {
+      var date = new Date(2015, JUN, 20);
+      var maxDate = new Date(2015, JUN, 1);
+      expect(dateUtil.isMonthWithinRange(date, null, maxDate)).toBeTruthy();
+    });
   });
 });

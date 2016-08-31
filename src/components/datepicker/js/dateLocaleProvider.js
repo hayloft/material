@@ -24,15 +24,21 @@
    * @property {(function(Date): string)=} formatDate Function to format a date object to a string.
    * @property {(function(Date): string)=} monthHeaderFormatter Function that returns the label for
    *     a month given a date.
+   * @property {(function(Date): string)=} monthFormatter Function that returns the full name of a month
+   *     for a giben date.
    * @property {(function(number): string)=} weekNumberFormatter Function that returns a label for
    *     a week given the week number.
    * @property {(string)=} msgCalendar Translation of the label "Calendar" for the current locale.
    * @property {(string)=} msgOpenCalendar Translation of the button label "Open calendar" for the
    *     current locale.
+   * @property {Date=} firstRenderableDate The date from which the datepicker calendar will begin
+   * rendering. Note that this will be ignored if a minimum date is set. Defaults to January 1st 1880.
+   * @property {Date=} lastRenderableDate The last date that will be rendered by the datepicker
+   * calendar. Note that this will be ignored if a maximum date is set. Defaults to January 1st 2130.
    *
    * @usage
    * <hljs lang="js">
-   *   myAppModule.config(function($mdDateLocaleProvider) {
+   * myAppModule.config(function($mdDateLocaleProvider) {
    *
    *     // Example of a French localization.
    *     $mdDateLocaleProvider.months = ['janvier', 'février', 'mars', ...];
@@ -71,11 +77,13 @@
    *     $mdDateLocaleProvider.msgCalendar = 'Calendrier';
    *     $mdDateLocaleProvider.msgOpenCalendar = 'Ouvrir le calendrier';
    *
+   *     // You can also set when your calendar begins and ends.
+   *     $mdDateLocaleProvider.firstRenderableDate = new Date(1776, 6, 4);
+   *     $mdDateLocaleProvider.lastRenderableDate = new Date(2012, 11, 21);
    * });
    * </hljs>
    *
    */
-
   angular.module('material.components.datepicker').config(function($provide) {
     // TODO(jelbourn): Assert provided values are correctly formatted. Need assertions.
 
@@ -149,7 +157,7 @@
      * @param $locale
      * @returns {DateLocale}
      */
-    DateLocaleProvider.prototype.$get = function($locale) {
+    DateLocaleProvider.prototype.$get = function($locale, $filter) {
       /**
        * Default date-to-string formatting function.
        * @param {!Date} date
@@ -172,7 +180,7 @@
           formatDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 1, 0, 0);
         }
 
-        return formatDate.toLocaleDateString();
+        return $filter('date')(formatDate, 'M/d/yyyy');
       }
 
       /**
@@ -212,6 +220,15 @@
       }
 
       /**
+       * Default formatter for a month.
+       * @param {!Date} date
+       * @returns {string}
+       */
+      function defaultMonthFormatter(date) {
+        return service.months[date.getMonth()] + ' ' + date.getFullYear();
+      }
+
+      /**
        * Default week number formatter.
        * @param number
        * @returns {string}
@@ -237,8 +254,8 @@
 
       // The default "short" day strings are the first character of each day,
       // e.g., "Monday" => "M".
-      var defaultShortDays = $locale.DATETIME_FORMATS.DAY.map(function(day) {
-        return day[0];
+      var defaultShortDays = $locale.DATETIME_FORMATS.SHORTDAY.map(function(day) {
+        return day.substring(0, 1);
       });
 
       // The default dates are simply the numbers 1 through 31.
@@ -251,6 +268,10 @@
       var defaultMsgCalendar = 'Calendar';
       var defaultMsgOpenCalendar = 'Open calendar';
 
+      // Default start/end dates that are rendered in the calendar.
+      var defaultFirstRenderableDate = new Date(1880, 0, 1);
+      var defaultLastRendereableDate = new Date(defaultFirstRenderableDate.getFullYear() + 250, 0, 1);
+
       var service = {
         months: this.months || $locale.DATETIME_FORMATS.MONTH,
         shortMonths: this.shortMonths || $locale.DATETIME_FORMATS.SHORTMONTH,
@@ -262,10 +283,13 @@
         parseDate: this.parseDate || defaultParseDate,
         isDateComplete: this.isDateComplete || defaultIsDateComplete,
         monthHeaderFormatter: this.monthHeaderFormatter || defaultMonthHeaderFormatter,
+        monthFormatter: this.monthFormatter || defaultMonthFormatter,
         weekNumberFormatter: this.weekNumberFormatter || defaultWeekNumberFormatter,
         longDateFormatter: this.longDateFormatter || defaultLongDateFormatter,
         msgCalendar: this.msgCalendar || defaultMsgCalendar,
-        msgOpenCalendar: this.msgOpenCalendar || defaultMsgOpenCalendar
+        msgOpenCalendar: this.msgOpenCalendar || defaultMsgOpenCalendar,
+        firstRenderableDate: this.firstRenderableDate || defaultFirstRenderableDate,
+        lastRenderableDate: this.lastRenderableDate || defaultLastRendereableDate
       };
 
       return service;

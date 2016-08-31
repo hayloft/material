@@ -6,6 +6,7 @@ describe('$mdDateLocale', function() {
   var $localeFake = {
     DATETIME_FORMATS: {
       DAY: ['Sundog', 'Mondog', 'Tuesdog', 'Wednesdog', 'Thursdog', 'Fridog', 'Saturdog'],
+      SHORTDAY: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
       MONTH: ['JanZ', 'FebZ', 'MarZ', 'AprZ', 'MayZ', 'JunZ', 'JulZ', 'AugZ', 'SeptZ',
           'OctZ', 'NovZ', 'DecZ'],
       SHORTMONTH: ['JZ', 'FZ', 'MZ', 'AZ', 'MZ', 'JZ', 'JZ', 'AZ', 'SZ', 'OZ', 'NZ', 'DZ']
@@ -45,6 +46,12 @@ describe('$mdDateLocale', function() {
     it('should have a default date parser', function() {
       var dateStr = '2014-03-25';
       expect(dateLocale.parseDate(dateStr)).toEqual(jasmine.any(Date));
+    });
+
+    it('should default to the US date formatting', function() {
+      var date = new Date(2014, 2, 25);
+      var dateStr = dateLocale.formatDate(date);
+      expect(dateStr).toBe('3/25/2014');
     });
 
     it('should have default date completion detection', function() {
