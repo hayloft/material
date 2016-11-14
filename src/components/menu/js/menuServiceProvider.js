@@ -56,6 +56,7 @@ function MenuProvider($$interimElementProvider) {
 
       if (options.hasBackdrop) {
         options.backdrop = $mdUtil.createBackdrop(scope, "md-menu-backdrop md-click-catcher");
+        options.backdrop.css('z-index', 90);
 
         $animate.enter(options.backdrop, $document[0].body);
       }
