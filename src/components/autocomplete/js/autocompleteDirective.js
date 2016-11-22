@@ -171,6 +171,10 @@ function MdAutocomplete ($$mdSvgRegistry) {
       // Retrieve the state of using a md-not-found template by using our attribute, which will
       // be added to the element in the template function.
       controller.hasNotFound = !!element.attr('md-has-not-found');
+
+      if (scope.menuClass) {
+        element.find('md-virtual-repeat-container').addClass('ox-autocomplete-suggestions-container-' + scope.menuClass);
+      }
     },
     template:     function (element, attr) {
       var noItemsTemplate = getNoItemsTemplate(),
@@ -186,6 +190,8 @@ function MdAutocomplete ($$mdSvgRegistry) {
       // Always set our tabindex of the autocomplete directive to -1, because our input
       // will hold the actual tabindex.
       element.attr('tabindex', '-1');
+
+      console.log('attr.mdMenuClass', attr.mdMenuClass);
 
       return '\
         <md-autocomplete-wrap\
