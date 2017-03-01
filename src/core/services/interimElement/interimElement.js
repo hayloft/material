@@ -1,5 +1,5 @@
 angular.module('material.core')
-  .provider('$$interimElement', InterimElementProvider);
+    .provider('$$interimElement', InterimElementProvider);
 
 /*
  * @ngdoc service
@@ -211,7 +211,7 @@ function InterimElementProvider() {
         if (opts._options) opts = opts._options;
 
         return interimElementService.show(
-          angular.extend({}, defaultOptions, opts)
+            angular.extend({}, defaultOptions, opts)
         );
       }
 
@@ -223,7 +223,7 @@ function InterimElementProvider() {
        *  which must have code to respond to `options.$destroy == true`
        */
       function destroyInterimElement(opts) {
-          return interimElementService.destroy(opts);
+        return interimElementService.destroy(opts);
       }
 
       /**
@@ -291,12 +291,12 @@ function InterimElementProvider() {
       function show(options) {
         options = options || {};
         var interimElement = new InterimElement(options || {});
+        options.multiple = true;
 
-        var hideAction = $q.resolve();
         // When an interim element is currently showing, we have to cancel it.
         // Just hiding it, will resolve the InterimElement's promise, the promise should be
         // rejected instead.
-        /*var hideAction = true ? $q.resolve() : $q.all(showPromises);
+        var hideAction = options.multiple ? $q.resolve() : $q.all(showPromises);
 
         if (!options.multiple) {
           // Wait for all opening interim's to finish their transition.
@@ -305,17 +305,17 @@ function InterimElementProvider() {
             var promiseArray = hidePromises.concat(showingInterims.map(service.cancel));
             return $q.all(promiseArray);
           });
-        }*/
+        }
 
         var showAction = hideAction.then(function() {
 
           return interimElement
-            .show()
-            .catch(function(reason) { return reason; })
-            .finally(function() {
-              showPromises.splice(showPromises.indexOf(showAction), 1);
-              showingInterims.push(interimElement);
-            });
+              .show()
+              .catch(function(reason) { return reason; })
+              .finally(function() {
+                showPromises.splice(showPromises.indexOf(showAction), 1);
+                showingInterims.push(interimElement);
+              });
 
         });
 
@@ -349,7 +349,6 @@ function InterimElementProvider() {
        *
        */
       function hide(reason, options) {
-        if ( !showingInterims.length ) return $q.when(reason);
         options = options || {};
 
         if (options.closeAll) {
@@ -360,16 +359,16 @@ function InterimElementProvider() {
         }
 
         // Hide the latest showing interim element.
-        return closeElement(showingInterims.shift());
+        return closeElement(showingInterims[showingInterims.length - 1]);
 
         function closeElement(interim) {
 
           var hideAction = interim
-            .remove(reason, false, options || { })
-            .catch(function(reason) { return reason; })
-            .finally(function() {
-              hidePromises.splice(hidePromises.indexOf(hideAction), 1);
-            });
+              .remove(reason, false, options || { })
+              .catch(function(reason) { return reason; })
+              .finally(function() {
+                hidePromises.splice(hidePromises.indexOf(hideAction), 1);
+              });
 
           showingInterims.splice(showingInterims.indexOf(interim), 1);
           hidePromises.push(hideAction);
@@ -397,11 +396,11 @@ function InterimElementProvider() {
         }
 
         var cancelAction = interim
-          .remove(reason, true, options || {})
-          .catch(function(reason) { return reason; })
-          .finally(function() {
-            hidePromises.splice(hidePromises.indexOf(cancelAction), 1);
-          });
+            .remove(reason, true, options || {})
+            .catch(function(reason) { return reason; })
+            .finally(function() {
+              hidePromises.splice(hidePromises.indexOf(cancelAction), 1);
+            });
 
         hidePromises.push(cancelAction);
 
@@ -441,8 +440,6 @@ function InterimElementProvider() {
        * Note: interim elements are in "interim containers"
        */
       function destroy(targetEl) {
-        return $q.when(true);
-
         var interim = !targetEl ? showingInterims.shift() : null;
 
         var parentEl = angular.element(targetEl).length && angular.element(targetEl)[0].parentNode;
@@ -462,7 +459,7 @@ function InterimElementProvider() {
         }
 
         return interim ? interim.remove(SHOW_CANCELLED, false, { '$destroy': true }) :
-                         $q.when(SHOW_CANCELLED);
+            $q.when(SHOW_CANCELLED);
       }
 
       /*
@@ -493,15 +490,15 @@ function InterimElementProvider() {
             options.onCompiling && options.onCompiling(options);
 
             compileElement(options)
-              .then(function( compiledData ) {
-                element = linkElement( compiledData, options );
+                .then(function( compiledData ) {
+                  element = linkElement( compiledData, options );
 
-                // Expose the cleanup function from the compiler.
-                options.cleanupElement = compiledData.cleanup;
+                  // Expose the cleanup function from the compiler.
+                  options.cleanupElement = compiledData.cleanup;
 
-                showAction = showElement(element, options, compiledData.controller)
-                  .then(resolve, rejectAll);
-              }).catch(rejectAll);
+                  showAction = showElement(element, options, compiledData.controller)
+                      .then(resolve, rejectAll);
+                }).catch(rejectAll);
 
             function rejectAll(fault) {
               // Force the '$md<xxx>.show()' promise to reject
@@ -603,13 +600,13 @@ function InterimElementProvider() {
           var compiled = !options.skipCompile ? $mdCompiler.compile(options) : null;
 
           return compiled || $q(function (resolve) {
-              resolve({
-                locals: {},
-                link: function () {
-                  return options.element;
-                }
+                resolve({
+                  locals: {},
+                  link: function () {
+                    return options.element;
+                  }
+                });
               });
-            });
         }
 
         /**
@@ -701,12 +698,12 @@ function InterimElementProvider() {
             try {
               // Start transitionIn
               $q.when(options.onShow(options.scope, element, options, controller))
-                .then(function () {
-                  notifyComplete(options.scope, element, options);
-                  startAutoHide();
+                  .then(function () {
+                    notifyComplete(options.scope, element, options);
+                    startAutoHide();
 
-                  resolve(element);
-                }, reject);
+                    resolve(element);
+                  }, reject);
 
             } catch (e) {
               reject(e.message);
