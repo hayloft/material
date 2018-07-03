@@ -1,10 +1,11 @@
-var args = require('minimist')(process.argv.slice(2));
-var VERSION = args.version || require('../package.json').version;
+const argsVersion = require('minimist')(process.argv.slice(2)).version;
+const currentVersion = require('../package.json').version;
+const VERSION = argsVersion || currentVersion;
 
 module.exports = {
   banner:
   '/*!\n' +
-  ' * Angular Material Design\n' +
+  ' * AngularJS Material Design\n' +
   ' * https://github.com/angular/material\n' +
   ' * @license MIT\n' +
   ' * v' + VERSION + '\n' +
@@ -30,8 +31,6 @@ module.exports = {
     'src/core/style/structure.scss',
     'src/core/style/typography.scss',
     'src/core/style/layout.scss',
-
-    // TODO(crisbeto): can be removed once mdPanel is in the core.
     'src/components/panel/*.scss'
   ],
   scssLayoutFiles: [

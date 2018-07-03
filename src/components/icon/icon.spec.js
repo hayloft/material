@@ -385,7 +385,7 @@ describe('MdIcon directive', function() {
     return style
         .replace(/ng-scope|ng-isolate-scope|md-default-theme/gi,'')
         .replace(/\s\s+/g,' ')
-        .replace(/\s+\"/g,'"')
+        .replace(/\s+"/g,'"')
         .trim();
   }
 
@@ -406,6 +406,7 @@ describe('MdIcon service', function() {
       .icon('android'           , 'android.svg')
       .icon('c2'                , 'c2.svg')
       .iconSet('social'         , 'social.svg' )
+      .iconSet('symbol'         , 'symbol.svg' )
       .iconSet('emptyIconSet'   , 'emptyGroup.svg' )
       .defaultIconSet('core.svg');
 
@@ -419,6 +420,7 @@ describe('MdIcon service', function() {
 
     $templateCache.put('android.svg'    , '<svg><g id="android"></g></svg>');
     $templateCache.put('social.svg'     , '<svg><g id="s1"></g><g id="s2"></g></svg>');
+    $templateCache.put('symbol.svg'     , '<svg><symbol id="s1"></symbol><symbol id="s2" viewBox="0 0 32 32"></symbol></svg>');
     $templateCache.put('core.svg'       , '<svg><g id="c1"></g><g id="c2" class="core"></g></svg>');
     $templateCache.put('c2.svg'         , '<svg><g id="c2" class="override"></g></svg>');
     $templateCache.put('emptyGroup.svg' , '<svg></svg>');
@@ -457,15 +459,31 @@ describe('MdIcon service', function() {
       });
 
       it('should append configured SVG icon from named group', function() {
-        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg"><g id="s1"></g></g></svg>');
+        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg"><g id="s1"></g></svg>');
         $mdIcon('social:s1').then(function(el) {
           expect(el.outerHTML).toEqual(expected);
         });
         $scope.$digest();
       });
 
+      it('should append configured SVG icon from symbol', function() {
+        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+        $mdIcon('symbol:s1').then(function(el) {
+          expect(el.outerHTML).toEqual(expected);
+        });
+        $scope.$digest();
+      });
+
+      it('should append configured SVG icon from symbol with viewBox', function() {
+        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"></svg>');
+        $mdIcon('symbol:s2').then(function(el) {
+          expect(el.outerHTML).toEqual(expected);
+        });
+        $scope.$digest();
+      });
+
       it('should append configured SVG icon from default group', function() {
-        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg"><g id="c1"></g></g></svg>');
+        var expected = updateDefaults('<svg xmlns="http://www.w3.org/2000/svg"><g id="c1"></g></svg>');
         $mdIcon('c1').then(function(el) {
           expect(el.outerHTML).toEqual(expected);
         });

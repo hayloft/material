@@ -1,24 +1,37 @@
-**Actual Behavior**:
- -  `What is the issue? *`
- -  `What is the expected behavior?`
+<!-- 
+Filling out this template is required! Do not delete it when submitting your issue! Without this information, your issue may be auto-closed. 
 
-**CodePen** (or steps to reproduce the issue): *
- -  `CodePen Demo which shows your issue:`
- -  `Details:`
+Please submit questions to the [AngularJS Material Forum](https://groups.google.com/forum/#!forum/ngmaterial) instead of submitting an issue.
+-->
+## Bug, enhancement request, or proposal:
 
-**Angular Versions**: *
- -  `Angular Version:`
- -  `Angular Material Version:`
+<!-- Please note that we are not accepting major feature requests, i.e. requests for new components, at this time. -->
 
-**Additional Information**:
- -  `Browser Type: *`
- -  `Browser Version: *`
- -  `OS: *`
- -  `Stack Traces:`
+# CodePen and steps to reproduce the issue:
+#### [CodePen Demo](http://codepen.io/team/AngularMaterial/pen/bEGJdd) which demonstrates the issue: 
 
-----
-Shortcut to create a [new CodePen Demo](http://codepen.io/team/AngularMaterial/pen/bEGJdd).
-Note: `*` indicates required information. Without this information, your issue may be auto-closed.
 
-> Do not modify the titles or questions. Simply add your responses to the ends of the questions.
-  Add more lines if needed.
+#### Detailed Reproduction Steps: 
+1. 
+1. 
+
+### What is the expected behavior?
+
+
+### What is the current behavior?
+
+
+### What is the use-case or motivation for changing an existing behavior?
+
+
+### Which versions of AngularJS, Material, OS, and browsers are affected?
+
+- AngularJS: 
+- AngularJS Material: 
+- OS: 
+- Browsers: 
+ 
+### Is there anything else we should know? Stack Traces, Screenshots, etc.
+
+
+<!-- Please double check that you have provided the required reproduction steps and a Demo via CodePen, Plunker, or GitHub repo. -->

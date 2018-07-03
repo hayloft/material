@@ -92,11 +92,19 @@ describe('<md-select>', function() {
       expect(container.classList.contains('test')).toBe(true);
     });
 
-    it('sets aria-owns between the select and the container', function() {
+    it('does not set aria-owns on select if DOM ownership is implied', function() {
       var select = setupSelect('ng-model="val"').find('md-select');
       var ownsId = select.attr('aria-owns');
+      expect(select.find('md-option')).toBeTruthy();
+      expect(ownsId).toBeFalsy();
+    });
+
+    it('sets aria-owns between the select and the container if element moved outside parent', function() {
+      var select = setupSelect('ng-model="val"').find('md-select');
+      openSelect(select);
+      var ownsId = select.attr('aria-owns');
       expect(ownsId).toBeTruthy();
-      var containerId = select[0].querySelector('.md-select-menu-container').getAttribute('id');
+      var containerId = $document[0].querySelector('.md-select-menu-container').getAttribute('id');
       expect(ownsId).toBe(containerId);
     });
 
@@ -205,7 +213,7 @@ describe('<md-select>', function() {
       $document[0].body.appendChild(select[0]);
 
       var selectMenu = $document.find('md-select-menu');
-      pressKey(selectMenu, 27);
+      pressKeyByCode(selectMenu, 27);
       $material.flushInterimElement();
 
       // FIXME- does not work with minified, jquery
@@ -270,6 +278,27 @@ describe('<md-select>', function() {
       $rootScope.$digest();
       expect(label.textContent).toBe('4');
     });
+
+    it('it should be able to reopen if the element was destroyed while the close ' +
+      'animation is running', function() {
+        $rootScope.showSelect = true;
+
+        var container = setupSelect('ng-model="val" ng-if="showSelect"', [1, 2, 3]);
+        var select = container.find('md-select');
+
+        openSelect(select);
+        expectSelectOpen(select);
+
+        clickOption(select, 0);
+        $rootScope.$apply('showSelect = false');
+        expectSelectClosed(select);
+
+        $rootScope.$apply('showSelect = true');
+        select = container.find('md-select');
+
+        openSelect(select);
+        expectSelectOpen(select);
+      });
 
     describe('when required', function() {
       it('allows 0 as a valid default value', function() {
@@ -985,7 +1014,7 @@ describe('<md-select>', function() {
           $rootScope.model = [];
           $rootScope.opts = [1, 2, 3, 4];
           $compile('<form name="testForm">' +
-            '<md-select ng-model="model" name="multiSelect" required="required" multiple="multiple">' +
+            '<md-select ng-model="model" name="multiSelect" required="required" multiple>' +
               '<md-option ng-repeat="opt in opts" ng-value="opt"></md-option>' +
             '</md-select></form>')($rootScope);
           $rootScope.$digest();
@@ -1049,7 +1078,7 @@ describe('<md-select>', function() {
         $rootScope.model = [1, 2];
         $rootScope.opts = [1, 2, 3, 4];
         $compile('<form name="testForm">' +
-          '<md-select ng-model="model" name="multiSelect" multiple="multiple">' +
+          '<md-select ng-model="model" name="multiSelect" multiple>' +
             '<md-option ng-repeat="opt in opts" ng-value="opt"></md-option>' +
           '</md-select></form>')($rootScope);
         $rootScope.$digest();
@@ -1164,8 +1193,18 @@ describe('<md-select>', function() {
         expect($rootScope.model).toEqual([1,3]);
       });
 
-      it('should not be multiple if attr.multiple == `false`', function() {
-        var el = setupSelect('multiple="false" ng-model="$root.model"').find('md-select');
+      it('should be multiple if attr.multiple exists', function() {
+        var el = setupSelect('multiple ng-model="$root.model"').find('md-select');
+        openSelect(el);
+        expectSelectOpen(el);
+
+        var selectMenu = $document.find('md-select-menu')[0];
+
+        expect(selectMenu.hasAttribute('multiple')).toBe(true);
+      });
+
+      it('should not be multiple if attr.multiple does not exist', function() {
+        var el = setupSelect('ng-model="$root.model"').find('md-select');
         openSelect(el);
         expectSelectOpen(el);
 
@@ -1174,6 +1213,27 @@ describe('<md-select>', function() {
         expect(selectMenu.hasAttribute('multiple')).toBe(false);
       });
 
+      it('should set the element dirty when selected options changes', function () {
+        $rootScope.model = 2;
+        $rootScope.opts = [1, 2, 3, 4];
+        var form = $compile('<form name="testForm">' +
+          '<md-select multiple ng-model="model" name="multiSelect">' +
+            '<md-option ng-repeat="opt in opts" ng-value="opt">{{opt}}</md-option>' +
+          '</md-select></form>')($rootScope);
+        var el = form.find('md-select');
+        
+        $rootScope.$digest();
+        $timeout.flush();
+
+        expect($rootScope.testForm.multiSelect.$pristine).toBe(true);
+        expect($rootScope.testForm.multiSelect.$dirty).toBe(false);
+
+        openSelect(el);
+        clickOption(el, 0);
+
+        expect($rootScope.testForm.multiSelect.$pristine).toBe(false);
+        expect($rootScope.testForm.multiSelect.$dirty).toBe(true);
+      });
     });
   });
 
@@ -1262,35 +1322,35 @@ describe('<md-select>', function() {
     describe('md-select', function() {
       it('can be opened with a space key', function() {
         var el = setupSelect('ng-model="someModel"', [1, 2, 3]).find('md-select');
-        pressKey(el, 32);
+        pressKeyByCode(el, 32);
         $material.flushInterimElement();
         expectSelectOpen(el);
       });
 
       it('can be opened with an enter key', function() {
         var el = setupSelect('ng-model="someModel"', [1, 2, 3]).find('md-select');
-        pressKey(el, 13);
+        pressKeyByCode(el, 13);
         $material.flushInterimElement();
         expectSelectOpen(el);
       });
 
       it('can be opened with the up key', function() {
         var el = setupSelect('ng-model="someModel"', [1, 2, 3]).find('md-select');
-        pressKey(el, 38);
+        pressKeyByCode(el, 38);
         $material.flushInterimElement();
         expectSelectOpen(el);
       });
 
       it('can be opened with the down key', function() {
         var el = setupSelect('ng-model="someModel"', [1, 2, 3]).find('md-select');
-        pressKey(el, 40);
+        pressKeyByCode(el, 40);
         $material.flushInterimElement();
         expectSelectOpen(el);
       });
 
       it('supports typing an option name', function() {
         var el = setupSelect('ng-model="someModel"', [1, 2, 3]).find('md-select');
-        pressKey(el, 50);
+        pressKey(el, '2');
         expect($rootScope.someModel).toBe(2);
       });
 
@@ -1298,7 +1358,7 @@ describe('<md-select>', function() {
         var words = ['algebra', 'álgebra'];
         var el = setupSelect('ng-model="someModel"', words).find('md-select');
 
-        pressKey(el, words[1].charCodeAt(0));
+        pressKey(el, words[1][0]);
         expect($rootScope.someModel).toBe(words[1]);
       }));
 
@@ -1306,8 +1366,20 @@ describe('<md-select>', function() {
         var words = ['algebra', '太阳'];
         var el = setupSelect('ng-model="someModel"', words).find('md-select');
 
-        pressKey(el, words[1].charCodeAt(0));
+        pressKey(el, words[1][0]);
         expect($rootScope.someModel).toBe(words[1]);
+      }));
+
+      it('supports typing dots and commas', inject(function($document, $rootScope) {
+        var words = ['a.b.c', 'a.b,d', 'a.b,c'];
+        var el = setupSelect('ng-model="someModel"', words).find('md-select');
+
+        pressKey(el, 'a');
+        pressKey(el, '.');
+        pressKey(el, 'b');
+        pressKey(el, ',');
+        pressKey(el, 'c');
+        expect($rootScope.someModel).toBe(words[2]);
       }));
 
       // Note, this test is designed to check the shouldHandleKey() method which is the default
@@ -1324,7 +1396,7 @@ describe('<md-select>', function() {
 
         keyCodes.forEach(function(code) {
           customEvent.keyCode = code;
-          pressKey(el, null, customEvent);
+          pressKeyByCode(el, null, customEvent);
           expect(customEvent.preventDefault).not.toHaveBeenCalled();
         });
       });
@@ -1340,13 +1412,13 @@ describe('<md-select>', function() {
 
         customEvent.keyCode = 70;
         customEvent.ctrlKey = true;
-        pressKey(el, null, customEvent);
+        pressKeyByCode(el, null, customEvent);
         expect(customEvent.preventDefault).not.toHaveBeenCalled();
 
         customEvent.keyCode = 82;
         customEvent.ctrlKey = false;
         customEvent.metaKey = true;
-        pressKey(el, null, customEvent);
+        pressKeyByCode(el, null, customEvent);
         expect(customEvent.preventDefault).not.toHaveBeenCalled();
       });
 
@@ -1356,7 +1428,7 @@ describe('<md-select>', function() {
           '<md-option value="2" ng-disabled="true">2</md-option>';
         var el = setupSelect('ng-model="someModel"', optsTemplate).find('md-select');
 
-        pressKey(el, 50);
+        pressKeyByCode(el, 50);
         expect($rootScope.someModel).toBe(undefined);
       });
     });
@@ -1368,7 +1440,7 @@ describe('<md-select>', function() {
         expectSelectOpen(el);
         var selectMenu = $document.find('md-select-menu');
         expect(selectMenu.length).toBe(1);
-        pressKey(selectMenu, 27);
+        pressKeyByCode(selectMenu, 27);
         $material.flushInterimElement();
         expectSelectClosed(el);
       });
@@ -1430,7 +1502,9 @@ describe('<md-select>', function() {
       el.triggerHandler('click');
       $material.flushInterimElement();
       el.triggerHandler('blur');
-    } catch (e) { }
+    } catch (e) {
+      // ignore error
+    }
   }
 
   function closeSelect() {
@@ -1441,10 +1515,19 @@ describe('<md-select>', function() {
   }
 
 
-  function pressKey(el, code, customEvent) {
+  function pressKeyByCode(el, code, customEvent) {
     var event = customEvent || {
       type: 'keydown',
       keyCode: code
+    };
+
+    el.triggerHandler(event);
+  }
+
+  function pressKey(el, key, customEvent) {
+    var event = customEvent || {
+      type: 'keydown',
+      key: key
     };
 
     el.triggerHandler(event);

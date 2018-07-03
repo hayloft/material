@@ -250,6 +250,26 @@ describe('<md-autocomplete>', function() {
       element.remove();
     }));
 
+    it('should allow you to set a class to the md-virtual-repeat-container element', inject(function() {
+      var scope = createScope(null, {menuContainerClass: 'custom-menu-container-class'});
+      var template = '\
+          <md-autocomplete\
+              md-menu-container-class="{{menuContainerClass}}"\
+              md-selected-item="selectedItem"\
+              md-search-text="searchText"\
+              md-items="item in match(searchText)"\
+              md-item-text="item.display"\
+              placeholder="placeholder">\
+            <span md-highlight-text="searchText">{{item.display}}</span>\
+          </md-autocomplete>';
+      var element = compile(template, scope);
+      var repeatContainer = element.find('md-virtual-repeat-container');
+
+      expect(repeatContainer.attr('class')).toContain(scope.menuContainerClass);
+
+      element.remove();
+    }));
+
     it('allows using ng-readonly', inject(function() {
       var scope = createScope(null, {inputId: 'custom-input-id'});
       var template = '\
@@ -275,6 +295,45 @@ describe('<md-autocomplete>', function() {
       scope.$digest();
 
       expect(input.attr('readonly')).toBeUndefined();
+
+      element.remove();
+    }));
+
+    it('does not open panel when ng-readonly is true', inject(function() {
+      var scope = createScope(null, {inputId: 'custom-input-id'});
+      var template = '\
+          <md-autocomplete\
+              md-input-id="{{inputId}}"\
+              md-selected-item="selectedItem"\
+              md-search-text="searchText"\
+              md-items="item in match(searchText)"\
+              md-item-text="item.display"\
+              placeholder="placeholder"\
+              md-min-length="0"\
+              ng-readonly="readonly">\
+            <span md-highlight-text="searchText">{{item.display}}</span>\
+          </md-autocomplete>';
+      var element = compile(template, scope);
+      var ctrl = element.controller('mdAutocomplete');
+      var input = element.find('input');
+
+      scope.readonly = false;
+      scope.$digest();
+      ctrl.focus();
+      waitForVirtualRepeat();
+
+      expect(input.attr('readonly')).toBeUndefined();
+      expect(ctrl.hidden).toBe(false);
+
+      ctrl.blur();
+      scope.readonly = true;
+      scope.$digest();
+      expect(ctrl.hidden).toBe(true);
+      ctrl.focus();
+      waitForVirtualRepeat();
+
+      expect(input.attr('readonly')).toBe('readonly');
+      expect(ctrl.hidden).toBe(true);
 
       element.remove();
     }));
@@ -350,6 +409,27 @@ describe('<md-autocomplete>', function() {
 
       element.remove();
     }));
+
+    it('forwards the `md-input-class` attribute to the input', function() {
+      var scope = createScope(null, {inputClass: 'custom-input-class'});
+      var template = '\
+          <md-autocomplete\
+              md-floating-label="Some Label"\
+              md-input-class="{{inputClass}}"\
+              md-selected-item="selectedItem"\
+              md-search-text="searchText"\
+              md-items="item in match(searchText)"\
+              md-item-text="item.display"\
+              placeholder="placeholder">\
+            <span md-highlight-text="searchText">{{item.display}}</span>\
+          </md-autocomplete>';
+      var element = compile(template, scope);
+      var input = element.find('input');
+
+      expect(input).toHaveClass(scope.inputClass);
+      
+      element.remove();
+    });
 
     it('forwards the `md-select-on-focus` attribute to the input', inject(function() {
       var scope = createScope(null, {inputId: 'custom-input-id'});
@@ -2624,18 +2704,18 @@ describe('<md-autocomplete>', function() {
       var template = '<div md-highlight-text="query">{{message}}</div>';
 
       var scope = createScope(null, {
-        message: 'Angular&Material',
-        query: 'Angular&'
+        message: 'AngularJS&Material',
+        query: 'AngularJS&'
       });
 
       var element = compile(template, scope);
 
-      expect(element.html()).toBe('<span class="highlight">Angular&amp;</span>Material');
+      expect(element.html()).toBe('<span class="highlight">AngularJS&amp;</span>Material');
 
-      scope.query = 'Angular&Material';
+      scope.query = 'AngularJS&Material';
       scope.$apply();
 
-      expect(element.html()).toBe('<span class="highlight">Angular&amp;Material</span>');
+      expect(element.html()).toBe('<span class="highlight">AngularJS&amp;Material</span>');
 
       element.remove();
     });
@@ -2644,24 +2724,24 @@ describe('<md-autocomplete>', function() {
       var template = '<div md-highlight-text="query">{{message}}</div>';
 
       var scope = createScope(null, {
-        message: 'Angular&amp;Material',
+        message: 'AngularJS&amp;Material',
         query: ''
       });
 
       var element = compile(template, scope);
 
-      expect(element.html()).toBe('Angular&amp;amp;Material');
+      expect(element.html()).toBe('AngularJS&amp;amp;Material');
 
-      scope.query = 'Angular&amp;Material';
+      scope.query = 'AngularJS&amp;Material';
       scope.$apply();
 
-      expect(element.html()).toBe('<span class="highlight">Angular&amp;amp;Material</span>');
+      expect(element.html()).toBe('<span class="highlight">AngularJS&amp;amp;Material</span>');
 
 
-      scope.query = 'Angular&';
+      scope.query = 'AngularJS&';
       scope.$apply();
 
-      expect(element.html()).toBe('<span class="highlight">Angular&amp;</span>amp;Material');
+      expect(element.html()).toBe('<span class="highlight">AngularJS&amp;</span>amp;Material');
 
       element.remove();
     });
@@ -2673,13 +2753,13 @@ describe('<md-autocomplete>', function() {
       var template = '<div md-highlight-text="query">{{message}}</div>';
 
       var scope = createScope(null, {
-        message: 'Angular Material',
+        message: 'AngularJS Material',
         query: '<img src="img" onerror="alert(1)">'
       });
 
       var element = compile(template, scope);
 
-      expect(element.html()).toBe('Angular Material');
+      expect(element.html()).toBe('AngularJS Material');
       expect(window.alert).not.toHaveBeenCalled();
 
       element.remove();

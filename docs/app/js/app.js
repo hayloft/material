@@ -63,13 +63,18 @@ function(SERVICES, COMPONENTS, DEMOS, PAGES,
     .dark();
 
   $mdIconProvider.icon('md-toggle-arrow', 'img/icons/toggle-arrow.svg', 48);
+  $mdIconProvider
+    .iconSet('communication', 'img/icons/sets/communication-icons.svg', 24)
+    .iconSet('device', 'img/icons/sets/device-icons.svg', 24)
+    .iconSet('social', 'img/icons/sets/social-icons.svg', 24)
+    .iconSet('symbol', 'img/icons/sets/symbol-icons.svg', 24)
+    .defaultIconSet('img/icons/sets/core-icons.svg', 24);
 
   $mdThemingProvider.theme('default')
       .primaryPalette('docs-blue')
       .accentPalette('docs-red');
 
-  $mdThemingProvider
-      .enableBrowserColor();
+  $mdThemingProvider.enableBrowserColor();
 
   angular.forEach(PAGES, function(pages, area) {
     angular.forEach(pages, function(page) {
@@ -128,14 +133,14 @@ function(SERVICES, COMPONENTS, DEMOS, PAGES,
 
   $routeProvider.otherwise('/');
 
-  // Change hash prefix of the Angular router, because we use the hash symbol for anchor links.
+  // Change hash prefix of the AngularJS router, because we use the hash symbol for anchor links.
   // The hash will be not used by the docs, because we use the HTML5 mode for our links.
   $locationProvider.hashPrefix('!');
 
 }])
 
 .config(['AngularyticsProvider', function(AngularyticsProvider) {
-   AngularyticsProvider.setEventHandlers(['Console', 'GoogleUniversal']);
+   AngularyticsProvider.setEventHandlers(['GoogleUniversal']);
 }])
 
 .run(['Angularytics', function(Angularytics) {
@@ -235,6 +240,15 @@ function(SERVICES, COMPONENTS, DEMOS, PAGES, $location, $rootScope, $http, $wind
             type: 'link'
           }
         ]
+      },
+      {
+        name: 'Performance',
+        type: 'toggle',
+        pages: [{
+            name: 'Internet Explorer',
+            url: 'performance/internet-explorer',
+            type: 'link'
+          }]
       }
     ]
   });
@@ -272,28 +286,28 @@ function(SERVICES, COMPONENTS, DEMOS, PAGES, $location, $rootScope, $http, $wind
         name: 'Introduction',
         id: 'layoutIntro',
         url: 'layout/introduction'
-      }
-        ,{
+      },
+      {
         name: 'Layout Containers',
         id: 'layoutContainers',
         url: 'layout/container'
-        }
-      ,{
+      },
+      {
         name: 'Layout Children',
         id: 'layoutGrid',
         url: 'layout/children'
-      }
-      ,{
+      },
+      {
         name: 'Child Alignment',
         id: 'layoutAlign',
         url: 'layout/alignment'
-      }
-      ,{
+      },
+      {
         name: 'Extra Options',
         id: 'layoutOptions',
         url: 'layout/options'
-      }
-      ,{
+      },
+      {
         name: 'Troubleshooting',
         id: 'layoutTips',
         url: 'layout/tips'
@@ -398,7 +412,7 @@ function(SERVICES, COMPONENTS, DEMOS, PAGES, $location, $rootScope, $http, $wind
         function getVersionIdFromPath () {
           var path = $window.location.pathname;
           if (path.length < 2) path = 'HEAD';
-          return path.match(/[^\/]+/)[0].toLowerCase();
+          return path.match(/[^/]+/)[0].toLowerCase();
         }
       });
 
